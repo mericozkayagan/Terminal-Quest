@@ -15,6 +15,8 @@ jobs:
 
     steps:
     - uses: actions/checkout@v4
+      with:
+        ref: ${{ github.head_ref }}
 
     - name: Set up Python ${{ matrix.python-version }}
       uses: actions/setup-python@v5
@@ -28,8 +30,15 @@ jobs:
         pip install -r requirements.txt
         pip install pytest pytest-cov mypy flake8 black bandit
 
-    - name: Check formatting with black
-      run: black . --check
+    - name: Format with black
+      run: |
+        black .
+
+    - name: Commit changes
+      uses: stefanzweifel/git-auto-commit-action@v5
+      with:
+        commit_message: "style: format code with Black"
+        branch: ${{ github.head_ref }}
 
     - name: Lint with flake8
       run: flake8 . --count --max-line-length=100 --statistics
