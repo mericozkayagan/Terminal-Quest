@@ -44,9 +44,20 @@ def combat(player: Player, enemy: Enemy) -> bool:
     type_text(f"\nA wild {enemy.name} appears!")
     
     # Display ASCII art for enemy
-    enemy_art = load_ascii_art(f"data/art/{enemy.name.lower().replace(' ', '_')}.txt")
-    if enemy_art:
+    try:
+        art_path = f"data/art/{enemy.name.lower().replace(' ', '_')}.txt"
+        enemy_art = load_ascii_art(art_path)
         display_ascii_art(enemy_art)
+    except FileNotFoundError:
+        import logging
+        logging.warning(f"ASCII art not found for enemy: {enemy.name}")
+        # Use a default ASCII art representation
+        display_ascii_art("""
+         /\\___/\\
+        (  o o  )
+        (  =^=  )
+         (______)
+        """)
     
     time.sleep(DISPLAY_SETTINGS["COMBAT_MESSAGE_DELAY"])
 
