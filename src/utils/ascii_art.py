@@ -12,10 +12,29 @@ def convert_pixel_art_to_ascii(pixel_art):
         ascii_art += "\n"
     return ascii_art
 
-def save_ascii_art(ascii_art, filename):
-    """Save ASCII art to a file."""
-    with open(filename, "w") as file:
-        file.write(ascii_art)
+def save_ascii_art(ascii_art: str, filename: str) -> None:
+    """Save ASCII art to a file.
+    
+    Args:
+        ascii_art: ASCII art string to save
+        filename: Target filename
+    
+    Raises:
+        ValueError: If filename is invalid
+        IOError: If file cannot be written
+    """
+    if not filename or not filename.strip():
+        raise ValueError("Invalid filename")
+    
+    safe_path = os.path.abspath(os.path.join(os.getcwd(), filename))
+    if not safe_path.startswith(os.getcwd()):
+        raise ValueError("Invalid file path")
+    
+    try:
+        with open(safe_path, "w") as file:
+            file.write(ascii_art)
+    except IOError as e:
+        raise IOError(f"Failed to save ASCII art: {e}")
 
 def load_ascii_art(filename: str) -> str:
     """Load ASCII art from a file.
