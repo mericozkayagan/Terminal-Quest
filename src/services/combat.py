@@ -5,6 +5,7 @@ from ..utils.display import type_text, clear_screen
 from ..config.settings import GAME_BALANCE, DISPLAY_SETTINGS
 import random
 import time
+from ..utils.ascii_art import load_ascii_art, display_ascii_art
 
 def calculate_damage(attacker: 'Character', defender: 'Character', base_damage: int) -> int:
     """Calculate damage considering attack, defense and randomness"""
@@ -41,6 +42,12 @@ def combat(player: Player, enemy: Enemy) -> bool:
     """
     clear_screen()
     type_text(f"\nA wild {enemy.name} appears!")
+    
+    # Display ASCII art for enemy
+    enemy_art = load_ascii_art(f"data/art/{enemy.name.lower().replace(' ', '_')}.txt")
+    if enemy_art:
+        display_ascii_art(enemy_art)
+    
     time.sleep(DISPLAY_SETTINGS["COMBAT_MESSAGE_DELAY"])
 
     while enemy.health > 0 and player.health > 0:

@@ -29,6 +29,8 @@ Terminal Quest is a text-based RPG that uses AI to generate unique content. The 
 - Status effects (bleeding, poison, etc.)
 - Skill-based abilities
 - Random encounters
+- Environmental effects such as weather conditions and terrain
+- Dynamic battlefields with hazards like traps or obstacles
 
 ### Items and Equipment
 - Various item types (weapons, armor, consumables)
@@ -40,5 +42,10 @@ Terminal Quest is a text-based RPG that uses AI to generate unique content. The 
 - Dynamic status effect system
 - Effects can modify stats or deal damage over time
 - Multiple effects can be active simultaneously
+
+### ASCII Art
+- AI-generated pixel art converted into ASCII art
+- ASCII art stored in `data/art/` directory
+- ASCII art displayed during game events such as encounters with monsters or finding items
 
 ## Project Structure

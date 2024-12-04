@@ -10,6 +10,7 @@ from src.utils.display import clear_screen, type_text
 from src.config.settings import GAME_BALANCE, STARTING_INVENTORY
 from src.models.character import Player, get_fallback_enemy
 from src.models.character_classes import fallback_classes
+from src.utils.ascii_art import convert_pixel_art_to_ascii, load_ascii_art, display_ascii_art
 
 def generate_unique_classes(count: int = 3):
     """Generate unique character classes with fallback system"""
@@ -65,6 +66,11 @@ def show_stats(player: Player):
     for item in player.inventory['items']:
         print(f"- {item.name}")
     print(f"{'='*40}\n")
+
+    # Display ASCII art for player
+    player_art = load_ascii_art(f"data/art/{player.char_class.name.lower().replace(' ', '_')}.txt")
+    if player_art:
+        display_ascii_art(player_art)
 
 def main():
     # Load environment variables
