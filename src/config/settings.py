@@ -86,9 +86,9 @@ DISPLAY_SETTINGS = {
 
 # AI Generation settings
 AI_SETTINGS = {
+    "TEMPERATURE": 0.7,
+    "MAX_TOKENS": 800,
     "MAX_RETRIES": 3,
-    "TEMPERATURE": 0.8,
-    "MAX_TOKENS": 500,
-    "PRESENCE_PENALTY": 0.6,
-    "FREQUENCY_PENALTY": 0.6,
+    "PRESENCE_PENALTY": 0.2,
+    "FREQUENCY_PENALTY": 0.3,
 }

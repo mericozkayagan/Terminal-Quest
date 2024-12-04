@@ -1,4 +1,6 @@
 import os
+from ..utils.pixel_art import PixelArt
+from typing import Optional
 
 
 def convert_pixel_art_to_ascii(pixel_art):
@@ -14,20 +16,53 @@ def convert_pixel_art_to_ascii(pixel_art):
     return ascii_art
 
 
-def save_ascii_art(ascii_art, filename):
-    """Save ASCII art to a file."""
-    with open(filename, "w") as file:
-        file.write(ascii_art)
+def display_ascii_art(art):
+    """Display ASCII art or PixelArt in the terminal."""
+    if isinstance(art, PixelArt):
+        print(art.render())
+    elif isinstance(art, str):
+        print(art)
+    else:
+        print("Unsupported art format")
 
 
-def load_ascii_art(filename):
-    """Load ASCII art from a file."""
-    if not os.path.exists(filename):
+def save_ascii_art(art: PixelArt, filename: str):
+    """Save ASCII art to file"""
+    os.makedirs("data/art", exist_ok=True)
+    safe_filename = filename.lower().replace("'", "").replace(" ", "_")
+    filepath = f"data/art/{safe_filename}.txt"
+
+    try:
+        with open(filepath, "w", encoding="utf-8") as f:
+            f.write(art.render())
+    except Exception as e:
+        print(f"Error saving art: {e}")
+
+
+def load_ascii_art(filename: str) -> Optional[str]:
+    """Load ASCII art from file"""
+    safe_filename = filename.lower().replace("'", "").replace(" ", "_")
+    filepath = f"data/art/{safe_filename}.txt"
+
+    try:
+        with open(filepath, "r", encoding="utf-8") as f:
+            return f.read()
+    except Exception as e:
+        print(f"Error loading art: {e}")
         return None
-    with open(filename, "r") as file:
-        return file.read()
 
 
-def display_ascii_art(ascii_art):
-    """Display ASCII art in the terminal."""
-    print(ascii_art)
+def ensure_character_art(class_name: str) -> str:
+    """Generate and save character art if it doesn't exist"""
+    from ..services.art_generator import (
+        generate_class_art,
+    )  # Import here to avoid circular import
+
+    safe_name = class_name.lower().replace("'", "").replace(" ", "_")
+    filepath = f"data/art/{safe_name}.txt"
+
+    if not os.path.exists(filepath):
+        art = generate_class_art(class_name)
+        save_ascii_art(art, safe_name)
+
+    return filepath

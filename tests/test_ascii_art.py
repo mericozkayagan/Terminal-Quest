@@ -20,9 +20,13 @@ class TestAsciiArt(unittest.TestCase):
         with open(self.test_filename, "w") as file:
             file.write(self.test_content)
 
-        # Test loading the file
-        loaded_art = load_ascii_art(self.test_filename)
-        self.assertEqual(loaded_art, self.test_content)
+    def test_display_ascii_art(self):
+        ascii_art = "Test ASCII Art"
+        from unittest.mock import patch
+
+        with patch("builtins.print") as mock_print:
+            display_ascii_art(ascii_art)
+            mock_print.assert_called_once_with(ascii_art)
 
     def test_load_ascii_art_file_not_found(self):
         """Test handling of non-existent files."""

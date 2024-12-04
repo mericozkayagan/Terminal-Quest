@@ -11,10 +11,13 @@ from src.config.settings import GAME_BALANCE, STARTING_INVENTORY
 from src.models.character import Player, get_fallback_enemy
 from src.models.character_classes import fallback_classes
 from src.utils.ascii_art import (
-    convert_pixel_art_to_ascii,
-    load_ascii_art,
     display_ascii_art,
+    save_ascii_art,
+    load_ascii_art,
+    ensure_character_art,
 )
+from src.config.logging_config import setup_logging
+from src.utils.debug import debug
 
 
 def generate_unique_classes(count: int = 3):
@@ -86,6 +89,13 @@ def show_stats(player: Player):
 
 
 def main():
+    # Setup logging based on debug mode
+    debug_mode = os.getenv("DEBUG_MODE", "false").lower() == "true"
+    setup_logging(debug_mode)
+
+    if debug_mode:
+        debug.enable()
+
     # Load environment variables
     load_dotenv()
 
@@ -117,6 +127,8 @@ def main():
             choice = int(input("\nYour choice (1-3): ")) - 1
             if 0 <= choice < len(classes):
                 player = Player(player_name, classes[choice])
+                # Generate and save character art
+                ensure_character_art(classes[choice].name)
                 break
         except ValueError:
             pass

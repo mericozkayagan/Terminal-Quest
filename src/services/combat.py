@@ -1,11 +1,12 @@
 from typing import Optional, List
-from ..models.character import Player, Enemy
+from ..models.character import Player, Enemy, Character
 from ..models.items import Item
 from ..utils.display import type_text, clear_screen
 from ..config.settings import GAME_BALANCE, DISPLAY_SETTINGS
 import random
 import time
-from ..utils.ascii_art import load_ascii_art, display_ascii_art
+from .art_generator import generate_enemy_art
+from ..utils.ascii_art import display_ascii_art
 
 
 def calculate_damage(
@@ -67,9 +68,8 @@ def combat(player: Player, enemy: Enemy) -> bool:
     type_text(f"\nA wild {enemy.name} appears!")
 
     # Display ASCII art for enemy
-    enemy_art = load_ascii_art(f"data/art/{enemy.name.lower().replace(' ', '_')}.txt")
-    if enemy_art:
-        display_ascii_art(enemy_art)
+    enemy_art = generate_enemy_art(enemy.name)
+    display_ascii_art(enemy_art)
 
     time.sleep(DISPLAY_SETTINGS["COMBAT_MESSAGE_DELAY"])
 
