@@ -1,5 +1,6 @@
 import os
 
+
 def convert_pixel_art_to_ascii(pixel_art):
     """Convert pixel art to ASCII art."""
     ascii_art = ""
@@ -12,10 +13,12 @@ def convert_pixel_art_to_ascii(pixel_art):
         ascii_art += "\n"
     return ascii_art
 
+
 def save_ascii_art(ascii_art, filename):
     """Save ASCII art to a file."""
     with open(filename, "w") as file:
         file.write(ascii_art)
+
 
 def load_ascii_art(filename):
     """Load ASCII art from a file."""
@@ -23,6 +26,7 @@ def load_ascii_art(filename):
         return None
     with open(filename, "r") as file:
         return file.read()
+
 
 def display_ascii_art(ascii_art):
     """Display ASCII art in the terminal."""

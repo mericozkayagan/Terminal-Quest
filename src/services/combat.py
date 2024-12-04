@@ -7,13 +7,19 @@ import random
 import time
 from ..utils.ascii_art import load_ascii_art, display_ascii_art
 
-def calculate_damage(attacker: 'Character', defender: 'Character', base_damage: int) -> int:
+
+def calculate_damage(
+    attacker: "Character", defender: "Character", base_damage: int
+) -> int:
     """Calculate damage considering attack, defense and randomness"""
-    damage = max(0, attacker.get_total_attack() + base_damage - defender.get_total_defense())
+    damage = max(
+        0, attacker.get_total_attack() + base_damage - defender.get_total_defense()
+    )
     rand_min, rand_max = GAME_BALANCE["DAMAGE_RANDOMNESS_RANGE"]
     return damage + random.randint(rand_min, rand_max)
 
-def process_status_effects(character: 'Character') -> List[str]:
+
+def process_status_effects(character: "Character") -> List[str]:
     """Process all status effects and return messages"""
     messages = []
     character.apply_status_effects()
@@ -25,15 +31,32 @@ def process_status_effects(character: 'Character') -> List[str]:
 
     return messages
 
+
 def check_for_drops(enemy: Enemy) -> Optional[Item]:
     """Check for item drops from enemy"""
-    from ..models.items import RUSTY_SWORD, LEATHER_ARMOR, HEALING_SALVE, POISON_VIAL, VAMPIRIC_BLADE, CURSED_AMULET
-    possible_drops = [RUSTY_SWORD, LEATHER_ARMOR, HEALING_SALVE, POISON_VIAL, VAMPIRIC_BLADE, CURSED_AMULET]
+    from ..models.items import (
+        RUSTY_SWORD,
+        LEATHER_ARMOR,
+        HEALING_SALVE,
+        POISON_VIAL,
+        VAMPIRIC_BLADE,
+        CURSED_AMULET,
+    )
+
+    possible_drops = [
+        RUSTY_SWORD,
+        LEATHER_ARMOR,
+        HEALING_SALVE,
+        POISON_VIAL,
+        VAMPIRIC_BLADE,
+        CURSED_AMULET,
+    ]
 
     for item in possible_drops:
         if random.random() < item.drop_chance:
             return item
     return None
+
 
 def combat(player: Player, enemy: Enemy) -> bool:
     """
@@ -42,12 +65,12 @@ def combat(player: Player, enemy: Enemy) -> bool:
     """
     clear_screen()
     type_text(f"\nA wild {enemy.name} appears!")
-    
+
     # Display ASCII art for enemy
     enemy_art = load_ascii_art(f"data/art/{enemy.name.lower().replace(' ', '_')}.txt")
     if enemy_art:
         display_ascii_art(enemy_art)
-    
+
     time.sleep(DISPLAY_SETTINGS["COMBAT_MESSAGE_DELAY"])
 
     while enemy.health > 0 and player.health > 0:
@@ -64,7 +87,10 @@ def combat(player: Player, enemy: Enemy) -> bool:
 
         # Show active status effects
         if player.status_effects:
-            effects = [f"{name}({effect.duration})" for name, effect in player.status_effects.items()]
+            effects = [
+                f"{name}({effect.duration})"
+                for name, effect in player.status_effects.items()
+            ]
             print(f"Status Effects: {', '.join(effects)}")
 
         print(f"\nWhat would you like to do?")
@@ -85,7 +111,9 @@ def combat(player: Player, enemy: Enemy) -> bool:
             # Skill usage
             print("\nChoose a skill:")
             for i, skill in enumerate(player.skills, 1):
-                print(f"{i}. {skill.name} (Damage: {skill.damage}, Mana: {skill.mana_cost})")
+                print(
+                    f"{i}. {skill.name} (Damage: {skill.damage}, Mana: {skill.mana_cost})"
+                )
                 print(f"   {skill.description}")
 
             try:
@@ -106,21 +134,21 @@ def combat(player: Player, enemy: Enemy) -> bool:
 
         elif choice == "3":
             # Item usage
-            if not player.inventory['items']:
+            if not player.inventory["items"]:
                 type_text("\nNo items in inventory!")
                 continue
 
             print("\nChoose an item to use:")
-            for i, item in enumerate(player.inventory['items'], 1):
+            for i, item in enumerate(player.inventory["items"], 1):
                 print(f"{i}. {item.name}")
                 print(f"   {item.description}")
 
             try:
                 item_choice = int(input("\nYour choice: ")) - 1
-                if 0 <= item_choice < len(player.inventory['items']):
-                    item = player.inventory['items'][item_choice]
+                if 0 <= item_choice < len(player.inventory["items"]):
+                    item = player.inventory["items"][item_choice]
                     if item.use(player):
-                        player.inventory['items'].pop(item_choice)
+                        player.inventory["items"].pop(item_choice)
                         type_text(f"\nUsed {item.name}!")
                     else:
                         type_text("\nCannot use this item!")
@@ -152,14 +180,16 @@ def combat(player: Player, enemy: Enemy) -> bool:
         # Check for item drops
         dropped_item = check_for_drops(enemy)
         if dropped_item:
-            player.inventory['items'].append(dropped_item)
+            player.inventory["items"].append(dropped_item)
             type_text(f"The {enemy.name} dropped a {dropped_item.name}!")
 
         # Level up check
         if player.exp >= player.exp_to_level:
             player.level += 1
             player.exp -= player.exp_to_level
-            player.exp_to_level = int(player.exp_to_level * GAME_BALANCE["LEVEL_UP_EXP_MULTIPLIER"])
+            player.exp_to_level = int(
+                player.exp_to_level * GAME_BALANCE["LEVEL_UP_EXP_MULTIPLIER"]
+            )
             player.max_health += GAME_BALANCE["LEVEL_UP_HEALTH_INCREASE"]
             player.health = player.max_health
             player.max_mana += GAME_BALANCE["LEVEL_UP_MANA_INCREASE"]

@@ -10,7 +10,12 @@ from src.utils.display import clear_screen, type_text
 from src.config.settings import GAME_BALANCE, STARTING_INVENTORY
 from src.models.character import Player, get_fallback_enemy
 from src.models.character_classes import fallback_classes
-from src.utils.ascii_art import convert_pixel_art_to_ascii, load_ascii_art, display_ascii_art
+from src.utils.ascii_art import (
+    convert_pixel_art_to_ascii,
+    load_ascii_art,
+    display_ascii_art,
+)
+
 
 def generate_unique_classes(count: int = 3):
     """Generate unique character classes with fallback system"""
@@ -42,14 +47,19 @@ def generate_unique_classes(count: int = 3):
 
     return classes
 
+
 def show_stats(player: Player):
     """Display player stats"""
     clear_screen()
     print(f"\n{'='*40}")
-    print(f"Name: {player.name}  |  Class: {player.char_class.name}  |  Level: {player.level}")
+    print(
+        f"Name: {player.name}  |  Class: {player.char_class.name}  |  Level: {player.level}"
+    )
     print(f"Health: {player.health}/{player.max_health}")
     print(f"Mana: {player.mana}/{player.max_mana}")
-    print(f"Attack: {player.get_total_attack()}  |  Defense: {player.get_total_defense()}")
+    print(
+        f"Attack: {player.get_total_attack()}  |  Defense: {player.get_total_defense()}"
+    )
     print(f"EXP: {player.exp}/{player.exp_to_level}")
     print(f"Gold: {player.inventory['Gold']}")
 
@@ -63,14 +73,17 @@ def show_stats(player: Player):
 
     # Show inventory
     print("\nInventory:")
-    for item in player.inventory['items']:
+    for item in player.inventory["items"]:
         print(f"- {item.name}")
     print(f"{'='*40}\n")
 
     # Display ASCII art for player
-    player_art = load_ascii_art(f"data/art/{player.char_class.name.lower().replace(' ', '_')}.txt")
+    player_art = load_ascii_art(
+        f"data/art/{player.char_class.name.lower().replace(' ', '_')}.txt"
+    )
     if player_art:
         display_ascii_art(player_art)
+
 
 def main():
     # Load environment variables
@@ -89,10 +102,14 @@ def main():
     for i, char_class in enumerate(classes, 1):
         print(f"\n{i}. {char_class.name}")
         print(f"   {char_class.description}")
-        print(f"   Health: {char_class.base_health} | Attack: {char_class.base_attack} | Defense: {char_class.base_defense} | Mana: {char_class.base_mana}")
+        print(
+            f"   Health: {char_class.base_health} | Attack: {char_class.base_attack} | Defense: {char_class.base_defense} | Mana: {char_class.base_mana}"
+        )
         print("\n   Skills:")
         for skill in char_class.skills:
-            print(f"   - {skill.name}: {skill.description} (Damage: {skill.damage}, Mana: {skill.mana_cost})")
+            print(
+                f"   - {skill.name}: {skill.description} (Damage: {skill.damage}, Mana: {skill.mana_cost})"
+            )
 
     # Class selection input
     while True:
@@ -140,12 +157,14 @@ def main():
                     except ValueError:
                         print("Invalid choice!")
                 elif shop_choice == "2":
-                    if not player.inventory['items']:
+                    if not player.inventory["items"]:
                         type_text("\nNo items to sell!")
                         continue
                     print("\nYour items:")
-                    for i, item in enumerate(player.inventory['items'], 1):
-                        print(f"{i}. {item.name} - Worth: {int(item.value * GAME_BALANCE['SELL_PRICE_MULTIPLIER'])} Gold")
+                    for i, item in enumerate(player.inventory["items"], 1):
+                        print(
+                            f"{i}. {item.name} - Worth: {int(item.value * GAME_BALANCE['SELL_PRICE_MULTIPLIER'])} Gold"
+                        )
                     try:
                         item_index = int(input("Enter item number to sell: ")) - 1
                         shop.sell_item(player, item_index)
@@ -170,12 +189,14 @@ def main():
 
         elif choice == "4":
             # Equipment management
-            if not player.inventory['items']:
+            if not player.inventory["items"]:
                 type_text("\nNo items to equip!")
                 continue
 
             print("\nYour items:")
-            equippable_items = [item for item in player.inventory['items'] if hasattr(item, 'equip')]
+            equippable_items = [
+                item for item in player.inventory["items"] if hasattr(item, "equip")
+            ]
             if not equippable_items:
                 type_text("\nNo equipment items found!")
                 continue
@@ -188,9 +209,9 @@ def main():
                 if 0 <= item_index < len(equippable_items):
                     item = equippable_items[item_index]
                     old_item = player.equip_item(item, item.item_type.value)
-                    player.inventory['items'].remove(item)
+                    player.inventory["items"].remove(item)
                     if old_item:
-                        player.inventory['items'].append(old_item)
+                        player.inventory["items"].append(old_item)
                     type_text(f"\nEquipped {item.name}!")
             except ValueError:
                 print("Invalid choice!")
@@ -203,6 +224,7 @@ def main():
         type_text("\nGame Over! Your hero has fallen in battle... 💀")
         type_text(f"Final Level: {player.level}")
         type_text(f"Gold Collected: {player.inventory['Gold']}")
+
 
 if __name__ == "__main__":
     main()

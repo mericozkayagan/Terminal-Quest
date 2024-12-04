@@ -5,13 +5,14 @@ from .character_classes import CharacterClass
 from .items import Item, Equipment
 from .status_effects import StatusEffect
 
+
 class Character:
     def __init__(self):
         self.status_effects: Dict[str, StatusEffect] = {}
         self.equipment: Dict[str, Optional[Equipment]] = {
             "weapon": None,
             "armor": None,
-            "accessory": None
+            "accessory": None,
         }
 
     def apply_status_effects(self):
@@ -42,6 +43,7 @@ class Character:
                 total += equipment.stat_modifiers["defense"]
         return total
 
+
 class Player(Character):
     def __init__(self, name: str, char_class: CharacterClass):
         super().__init__()
@@ -53,12 +55,7 @@ class Player(Character):
         self.defense = char_class.base_defense
         self.mana = char_class.base_mana
         self.max_mana = char_class.base_mana
-        self.inventory = {
-            "Health Potion": 2,
-            "Mana Potion": 2,
-            "Gold": 0,
-            "items": []
-        }
+        self.inventory = {"Health Potion": 2, "Mana Potion": 2, "Gold": 0, "items": []}
         self.level = 1
         self.exp = 0
         self.exp_to_level = 100
@@ -77,8 +74,11 @@ class Player(Character):
         item.equip(self)
         return old_item
 
+
 class Enemy(Character):
-    def __init__(self, name: str, health: int, attack: int, defense: int, exp: int, gold: int):
+    def __init__(
+        self, name: str, health: int, attack: int, defense: int, exp: int, gold: int
+    ):
         super().__init__()
         self.name = name
         self.health = health
@@ -87,6 +87,7 @@ class Enemy(Character):
         self.exp = exp
         self.gold = gold
 
+
 def get_fallback_enemy() -> Enemy:
     """Return a random fallback enemy when AI generation fails"""
     enemies = [
@@ -94,6 +95,6 @@ def get_fallback_enemy() -> Enemy:
         Enemy("Skeleton", 45, 12, 4, 35, 20),
         Enemy("Orc", 60, 15, 6, 50, 30),
         Enemy("Dark Mage", 40, 20, 3, 45, 25),
-        Enemy("Dragon", 100, 25, 10, 100, 75)
+        Enemy("Dragon", 100, 25, 10, 100, 75),
     ]
     return random.choice(enemies)

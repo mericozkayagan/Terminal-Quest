@@ -2,6 +2,7 @@ from dataclasses import dataclass
 from typing import List
 from .skills import Skill
 
+
 @dataclass
 class CharacterClass:
     name: str
@@ -12,6 +13,7 @@ class CharacterClass:
     base_mana: int
     skills: List[Skill]
 
+
 fallback_classes = [
     CharacterClass(
         name="Plague Herald",
@@ -21,9 +23,19 @@ fallback_classes = [
         base_defense=4,
         base_mana=80,
         skills=[
-            Skill(name="Virulent Outbreak", damage=25, mana_cost=20, description="Unleashes a devastating plague that corrupts flesh and spirit"),
-            Skill(name="Miasmic Shroud", damage=15, mana_cost=15, description="Surrounds self with toxic vapors that decay all they touch")
-        ]
+            Skill(
+                name="Virulent Outbreak",
+                damage=25,
+                mana_cost=20,
+                description="Unleashes a devastating plague that corrupts flesh and spirit",
+            ),
+            Skill(
+                name="Miasmic Shroud",
+                damage=15,
+                mana_cost=15,
+                description="Surrounds self with toxic vapors that decay all they touch",
+            ),
+        ],
     ),
     CharacterClass(
         name="Blood Sovereign",
@@ -33,9 +45,19 @@ fallback_classes = [
         base_defense=5,
         base_mana=70,
         skills=[
-            Skill(name="Crimson Feast", damage=28, mana_cost=25, description="Drains life force through cursed bloodletting"),
-            Skill(name="Sanguine Storm", damage=20, mana_cost=20, description="Conjures a tempest of crystallized blood shards")
-        ]
+            Skill(
+                name="Crimson Feast",
+                damage=28,
+                mana_cost=25,
+                description="Drains life force through cursed bloodletting",
+            ),
+            Skill(
+                name="Sanguine Storm",
+                damage=20,
+                mana_cost=20,
+                description="Conjures a tempest of crystallized blood shards",
+            ),
+        ],
     ),
     CharacterClass(
         name="Void Harbinger",
@@ -45,8 +67,18 @@ fallback_classes = [
         base_defense=3,
         base_mana=100,
         skills=[
-            Skill(name="Null Cascade", damage=30, mana_cost=30, description="Tears a rift in space that consumes all it touches"),
-            Skill(name="Entropy Surge", damage=22, mana_cost=25, description="Accelerates the decay of matter and spirit")
-        ]
-    )
+            Skill(
+                name="Null Cascade",
+                damage=30,
+                mana_cost=30,
+                description="Tears a rift in space that consumes all it touches",
+            ),
+            Skill(
+                name="Entropy Surge",
+                damage=22,
+                mana_cost=25,
+                description="Accelerates the decay of matter and spirit",
+            ),
+        ],
+    ),
 ]

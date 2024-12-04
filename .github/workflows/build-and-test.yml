@@ -28,7 +28,6 @@ jobs:
       run: |
         python -m pip install --upgrade pip
         pip install -r requirements.txt
-        pip install pytest pytest-cov mypy flake8 black bandit
 
     - name: Format with black
       run: |
