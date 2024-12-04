@@ -116,6 +116,16 @@ terminal_quest/
 - Type hints throughout the codebase
 - Comprehensive documentation and comments
 
+### CI/CD
+- Automated testing on pull requests
+- Dependency updates via Dependabot
+- Code quality checks:
+  - Type checking with mypy
+  - Linting with flake8
+  - Formatting with black
+  - Security scanning with bandit
+- Automated test coverage reporting
+
 ### Error Handling
 - Graceful fallback system for AI failures
 - Input validation for all user interactions
