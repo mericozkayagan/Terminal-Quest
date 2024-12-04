@@ -1,4 +1,8 @@
 from typing import Dict, Tuple
+import os
+from dotenv import load_dotenv
+
+load_dotenv()
 
 # Game version
 VERSION = "1.0.0"
@@ -92,3 +96,8 @@ AI_SETTINGS = {
     "PRESENCE_PENALTY": 0.2,
     "FREQUENCY_PENALTY": 0.3,
 }
+
+# AI Settings
+ENABLE_AI_CLASS_GENERATION = (
+    os.getenv("ENABLE_AI_CLASS_GENERATION", "false").lower() == "true"
+)

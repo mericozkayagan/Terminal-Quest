@@ -4,7 +4,7 @@ from ..models.skills import Skill
 from ..models.character import Enemy
 from ..config.settings import STAT_RANGES
 from .ai_core import generate_content
-from .art_generator import generate_art_description, create_pixel_art
+from .art_generator import generate_ascii_art, generate_class_ascii_art
 import json
 import random
 import logging
@@ -111,9 +111,16 @@ CRITICAL JSON RULES:
             ],
         }
 
-        # Create and validate the character class
+        # Create character class
         character_class = CharacterClass(**char_data)
-        logger.debug(f"Successfully created character class: {character_class.name}")
+
+        # Generate and attach art
+        art = generate_class_ascii_art(
+            character_class.name, character_class.description
+        )
+        if art:
+            character_class.art = art.strip()
+
         return character_class
 
     except Exception as e:
@@ -172,13 +179,13 @@ Required JSON structure:
         for stat, (min_val, max_val) in stats.items():
             data[stat] = max(min_val, min(max_val, int(data[stat])))
 
-        art_desc = generate_art_description("enemy", data["name"])
-        if art_desc:
-            enemy = Enemy(**data)
-            enemy.art = create_pixel_art(art_desc)
-            return enemy
+        # Generate ASCII art
+        art = generate_ascii_art("enemy", data["name"])
+        enemy = Enemy(**data)
+        if art:
+            enemy.art = art
 
-        return Enemy(**data)
+        return enemy
     except Exception as e:
-        print(f"\nError processing enemy: {e}")
+        logger.error(f"Error processing enemy: {e}")
         return None

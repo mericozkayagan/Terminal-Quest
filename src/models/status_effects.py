@@ -12,7 +12,7 @@ class StatusEffect:
     tick_damage: int = 0
     chance_to_apply: float = 1.0
 
-    def apply(self, target: "Character") -> bool:
+    def apply(self, target: "Character") -> bool:  # type: ignore
         """Attempts to apply the status effect to a target"""
         if random.random() <= self.chance_to_apply:
             # If same effect exists, refresh duration
@@ -30,7 +30,7 @@ class StatusEffect:
             return True
         return False
 
-    def tick(self, target: "Character"):
+    def tick(self, target: "Character"):  # type: ignore
         """Apply the effect for one turn"""
         if self.tick_damage:
             damage = self.tick_damage
@@ -39,7 +39,7 @@ class StatusEffect:
             return damage
         return 0
 
-    def remove(self, target: "Character"):
+    def remove(self, target: "Character"):  # type: ignore
         """Remove the effect and revert any stat changes"""
         if self.stat_modifiers:
             for stat, modifier in self.stat_modifiers.items():

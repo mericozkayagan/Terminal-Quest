@@ -77,7 +77,7 @@ def generate_content(prompt: str, retries: int = None) -> Optional[str]:
             current_temperature = base_temperature + (attempt * 0.1)
 
             response = client.chat.completions.create(
-                model="gpt-4",
+                model="gpt-3.5-turbo",
                 messages=[
                     {"role": "system", "content": SYSTEM_PROMPT},
                     {"role": "user", "content": prompt},

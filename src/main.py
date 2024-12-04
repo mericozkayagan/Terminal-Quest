@@ -1,10 +1,10 @@
 #!/usr/bin/env python3
 
 import os
+import random
 from typing import List
 from dotenv import load_dotenv
-from src.config.logging_config import setup_logging
-from src.services.character_creation import CharacterCreationService
+from src.services.ai_generator import generate_character_class, generate_enemy
 from src.services.combat import combat
 from src.services.shop import Shop
 from src.display.main.main_view import GameView
@@ -16,7 +16,41 @@ from src.display.base.base_view import BaseView
 from src.display.common.message_view import MessageView
 from src.config.settings import GAME_BALANCE, STARTING_INVENTORY
 from src.models.character import Player, get_fallback_enemy
-from src.services.ai_generator import generate_enemy
+from src.models.character_classes import CharacterClass, fallback_classes
+from src.utils.ascii_art import ensure_character_art
+from src.config.logging_config import setup_logging
+from src.utils.debug import debug
+
+
+def get_available_classes(count: int = 3) -> List[CharacterClass]:
+    """Generate unique character classes with fallback system"""
+    classes = []
+    used_names = set()
+    max_attempts = 3
+
+    for _ in range(max_attempts):
+        try:
+            char_class = generate_character_class()
+            if char_class and char_class.name not in used_names:
+                MessageView.show_success(f"Successfully generated: {char_class.name}")
+                if hasattr(char_class, "art") and char_class.art:
+                    print("\n" + char_class.art + "\n")
+                classes.append(char_class)
+                used_names.add(char_class.name)
+                if len(classes) >= count:
+                    return classes
+        except Exception as e:
+            MessageView.show_error(f"Attempt failed: {e}")
+            break
+
+    if len(classes) < count:
+        MessageView.show_info("Using fallback character classes...")
+        for c in fallback_classes:
+            if len(classes) < count and c.name not in used_names:
+                classes.append(c)
+                used_names.add(c.name)
+
+    return classes
 
 
 def main():
@@ -36,13 +70,23 @@ def main():
     character_view.show_character_creation()
     player_name = input().strip()
 
-    # Use character creation service
-    player = CharacterCreationService.create_character(player_name)
-    if not player:
-        MessageView.show_error("Character creation failed!")
+    classes = get_available_classes()
+    character_view.show_class_selection(classes)
+
+    try:
+        choice = int(input("\nChoose your class (1-3): ")) - 1
+        if 0 <= choice < len(classes):
+            chosen_class = classes[choice]
+            character_view.show_character_class(chosen_class)
+        else:
+            MessageView.show_error("Invalid class choice!")
+            return
+    except ValueError:
+        MessageView.show_error("Please enter a valid number!")
         return
 
-    # Initialize inventory
+    # Initialize player
+    player = Player(player_name, chosen_class)
     for item_name, quantity in STARTING_INVENTORY.items():
         player.inventory[item_name] = quantity
 

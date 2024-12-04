@@ -1,6 +1,6 @@
 import os
 import unittest
-from src.utils.ascii_art import load_ascii_art
+from src.utils.ascii_art import display_ascii_art, load_ascii_art
 
 
 class TestAsciiArt(unittest.TestCase):

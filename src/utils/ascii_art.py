@@ -1,6 +1,8 @@
 import os
+from ..services.art_generator import generate_class_art
 from ..utils.pixel_art import PixelArt
 from typing import Optional
+from src.config.settings import ENABLE_AI_CLASS_GENERATION
 
 
 def convert_pixel_art_to_ascii(pixel_art):
@@ -54,15 +56,14 @@ def load_ascii_art(filename: str) -> Optional[str]:
 
 def ensure_character_art(class_name: str) -> str:
     """Generate and save character art if it doesn't exist"""
-    from ..services.art_generator import (
-        generate_class_art,
-    )  # Import here to avoid circular import
+    safe_name = class_name.lower().replace("'", "").replace(" ", "_") + ".txt"
+    art_path = os.path.join("data/art", safe_name)
 
-    safe_name = class_name.lower().replace("'", "").replace(" ", "_")
-    filepath = f"data/art/{safe_name}.txt"
+    if not os.path.exists(art_path):
+        if ENABLE_AI_CLASS_GENERATION:
+            art = generate_class_art(class_name)
+            save_ascii_art(art, safe_name)
+        else:
+            return ""  # Return empty string if AI generation is disabled
 
-    if not os.path.exists(filepath):
-        art = generate_class_art(class_name)
-        save_ascii_art(art, safe_name)
-
-    return filepath
+    return safe_name

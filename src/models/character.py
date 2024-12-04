@@ -1,15 +1,14 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Dict, List, Optional
 import random
 from .character_classes import CharacterClass
-from .items import Item, Equipment
 from .status_effects import StatusEffect
 
 
 class Character:
     def __init__(self):
         self.status_effects: Dict[str, StatusEffect] = {}
-        self.equipment: Dict[str, Optional[Equipment]] = {
+        self.equipment: Dict[str, Optional["Equipment"]] = {  # type: ignore
             "weapon": None,
             "armor": None,
             "accessory": None,
@@ -61,7 +60,7 @@ class Player(Character):
         self.exp_to_level = 100
         self.skills = char_class.skills
 
-    def equip_item(self, item: Equipment, slot: str) -> Optional[Equipment]:
+    def equip_item(self, item: "Equipment", slot: str) -> Optional["Equipment"]:  # type: ignore
         """Equip an item and return the previously equipped item if any"""
         if slot not in self.equipment:
             return None

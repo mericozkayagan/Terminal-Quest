@@ -5,87 +5,43 @@ from .ai_core import generate_content
 from ..utils.pixel_art import PixelArt
 from ..utils.art_utils import (
     draw_circular_shape,
+    draw_default_shape,
     draw_tall_shape,
     add_feature,
     add_detail,
+    load_ascii_art,
 )
+import logging
+import time
+
+logger = logging.getLogger(__name__)
 
 
-def generate_art_description(entity_type: str, name: str) -> Optional[Dict]:
-    """Generate art description using AI"""
-    prompt = f"""Create a detailed ASCII art description for a {entity_type} named '{name}' in a dark fantasy setting.
-    Focus on creating a distinctive silhouette and memorable details.
+def generate_ascii_art(
+    entity_type: str, name: str, width: int = 20, height: int = 10
+) -> Optional[str]:
+    """Generate ASCII art using text prompts"""
+    prompt = f"""Create a {width}x{height} ASCII art for a {entity_type} named '{name}' in a dark fantasy setting.
+    Rules:
+    1. Use ONLY these characters: ░ ▒ ▓ █ ▄ ▀ ║ ═ ╔ ╗ ╚ ╝ ♦ ◆ ◢ ◣
+    2. Output EXACTLY {height} lines
+    3. Each line must be EXACTLY {width} characters wide
+    4. NO explanations or comments, ONLY the ASCII art
+    5. Create a distinctive silhouette that represents the character
+    6. Use darker characters (▓ █) for main body
+    7. Use lighter characters (░ ▒) for details
+    8. Use special characters (♦ ◆) for highlights
 
-    Return as JSON with these exact specifications:
-    {{
-        "layout": {{
-            "base_shape": "main shape description",
-            "key_features": ["list of 2-3 distinctive visual elements"],
-            "details": ["list of 2-3 smaller details"],
-            "color_scheme": {{
-                "primary": [R,G,B],
-                "secondary": [R,G,B],
-                "accent": [R,G,B],
-                "highlight": [R,G,B]
-            }}
-        }},
-        "ascii_elements": {{
-            "main_body": "character to use for main shape",
-            "details": "character for details",
-            "outline": "character for edges",
-            "highlights": "character for glowing/accent parts"
-        }}
-    }}"""
+    Example format:
+    ╔════════════╗
+    ║  ▄▀▄▀▄▀▄   ║
+    ║   ▓█▓█▓    ║
+    ║    ◆◆◆     ║
+    ╚════════════╝
+    """
 
     content = generate_content(prompt)
-    if not content:
-        return None
-
-    try:
-        return json.loads(content)
-    except Exception as e:
-        print(f"Error parsing art description: {e}")
-        return None
-
-
-def create_pixel_art(desc: Dict, width: int = 20, height: int = 20) -> PixelArt:
-    art = PixelArt(width, height)
-    layout = desc["layout"]
-    elements = desc["ascii_elements"]
-    colors = layout["color_scheme"]
-
-    # Convert color arrays to tuples
-    color_map = {
-        "primary": tuple(colors["primary"]),
-        "secondary": tuple(colors["secondary"]),
-        "accent": tuple(colors["accent"]),
-        "highlight": tuple(colors["highlight"]),
-    }
-
-    # Draw base shape
-    center_x, center_y = width // 2, height // 2
-    if "circular" in layout["base_shape"].lower():
-        draw_circular_shape(
-            art, center_x, center_y, color_map["primary"], elements["main_body"]
-        )
-    elif "tall" in layout["base_shape"].lower():
-        draw_tall_shape(
-            art, center_x, center_y, color_map["primary"], elements["main_body"]
-        )
-    else:
-        draw_default_shape(
-            art, center_x, center_y, color_map["primary"], elements["main_body"]
-        )
-
-    # Add key features
-    for feature in layout["key_features"]:
-        add_feature(art, feature, color_map["secondary"], elements["details"])
-
-    # Add highlights and details
-    for detail in layout["details"]:
-        add_detail(art, detail, color_map["accent"], elements["highlights"])
-
-    return art
+    return content if content else None
 
 
 def generate_enemy_art(name: str) -> PixelArt:
@@ -195,3 +151,126 @@ def generate_class_art(class_name: str) -> PixelArt:
         art.set_pixel(12, 6, GLOW, char="◆")
 
     return art
+
+
+def get_art_path(art_name):
+    # Remove any file extension if present
+    art_name = art_name.split(".")[0]
+    # Return the correct path format
+    return f"{art_name}.txt"
+
+
+def load_monster_art(monster_name):
+    art_path = get_art_path(monster_name)
+    return load_ascii_art(art_path)
+
+
+def generate_class_ascii_art(
+    class_name: str, description: str, max_retries: int = 3
+) -> Optional[str]:
+    """Generate ASCII art for a character class with retries"""
+    logger = logging.getLogger(__name__)
+
+    for attempt in range(max_retries):
+        try:
+            prompt = f"""Create a 15x30 detailed human portrait ASCII art for the dark fantasy class '{class_name}'.
+            Class description: {description}
+
+            Rules:
+            1. Use these characters for facial features and details:
+               ░ ▒ ▓ █ ▀ ▄ ╱ ╲ ╳ ┌ ┐ └ ┘ │ ─ ├ ┤ ┬ ┴ ┼ ╭ ╮ ╯ ╰
+               ◣ ◢ ◤ ◥ ╱ ╲ ╳ ▁ ▂ ▃ ▅ ▆ ▇ ◆ ♦ ⚊ ⚋ ╍ ╌ ┄ ┅ ┈ ┉
+            2. Create EXACTLY 15 lines of art
+            3. Each line must be EXACTLY 30 characters
+            4. Return ONLY the raw ASCII art, no JSON, no quotes
+            5. Focus on DETAILED HUMAN FACE and upper body where:
+               - Use shading (░▒▓█) for skin tones and shadows
+               - Show detailed facial features (eyes, nose, mouth)
+               - Include hair with flowing details
+               - Add class-specific headgear/hood/crown
+               - Show shoulders and upper chest with armor/clothing
+
+            Example format for a Dark Knight:
+            ╔════════════════════════════════╗
+            ║      ▄▄███████████▄▄          ║
+            ║    ▄█▀▀░░░░░░░░░▀▀█▄         ║
+            ║   ██░▒▓████████▓▒░██         ║
+            ║  ██░▓█▀╔══╗╔══╗▀█▓░██        ║
+            ║  █▓▒█╔══║██║══╗█▒▓█         ║
+            ║  █▓▒█║◆═╚══╝═◆║█▒▓█         ║
+            ║  ██▓█╚════════╝█▓██         ║
+            ║   ███▀▀══════▀▀███          ║
+            ║  ██╱▓▓▓██████▓▓▓╲██         ║
+            ║ ██▌║▓▓▓▓▀██▀▓▓▓▓║▐██        ║
+            ║ ██▌║▓▓▓▓░██░▓▓▓▓║▐██        ║
+            ║  ██╲▓▓▓▓░██░▓▓▓▓╱██         ║
+            ║   ███▄▄░████░▄▄███          ║
+            ╚════════════════════════════════╝
+
+            Create similarly styled PORTRAIT art for {class_name} that shows:
+            {description}
+
+            Key elements to include:
+            1. Detailed facial structure with shading
+            2. Expressive eyes showing character's nature
+            3. Class-specific headwear or markings
+            4. Distinctive hair or hood design
+            5. Shoulder armor or clothing details
+            6. Magical effects or corruption signs
+            7. Background shading for depth
+            """
+
+            content = generate_content(prompt)
+            if not content:
+                logger.warning(f"Attempt {attempt + 1}: No content generated")
+                continue
+
+            # Clean up and validation code remains the same...
+            if content.strip().startswith("{"):
+                try:
+                    data = json.loads(content)
+                    if "art" in data or "ascii_art" in data or "character_art" in data:
+                        art_lines = (
+                            data.get("art")
+                            or data.get("ascii_art")
+                            or data.get("character_art")
+                        )
+                        return "\n".join(art_lines)
+                except json.JSONDecodeError:
+                    cleaned_content = (
+                        content.replace("{", "").replace("}", "").replace('"', "")
+                    )
+                    if "║" in cleaned_content or "╔" in cleaned_content:
+                        return cleaned_content.strip()
+            else:
+                if "║" in content or "╔" in content:
+                    return content.strip()
+
+            logger.warning(f"Attempt {attempt + 1}: Invalid art format received")
+
+        except Exception as e:
+            logger.error(f"Attempt {attempt + 1} failed: {str(e)}")
+
+        if attempt < max_retries - 1:
+            time.sleep(1)
+
+    return generate_fallback_art(class_name)
+
+
+def generate_fallback_art(class_name: str) -> str:
+    """Generate a detailed portrait fallback ASCII art"""
+    return f"""╔════════════════════════════════╗
+║      ▄▄███████████▄▄          ║
+║    ▄█▀▀░░░░░░░░░▀▀█▄         ║
+║   ██░▒▓████████▓▒░██         ║
+║  ██░▓█▀╔══╗╔══╗▀█▓░██        ║
+║  █▓▒█╔══║██║══╗█▒▓█         ║
+║  █▓▒█║◆═╚══╝═◆║█▒▓█         ║
+║  ██▓█╚════════╝█▓██         ║
+║   ███▀▀══════▀▀███          ║
+║  ██╱▓▓▓██████▓▓▓╲██         ║
+║ ██▌║▓▓▓▓▀██▀▓▓▓▓║▐██        ║
+║ ██▌║▓▓▓▓░██░▓▓▓▓║▐██        ║
+║  ██╲▓▓▓▓░██░▓▓▓▓╱██         ║
+║   ███▄▄░████░▄▄███          ║
+╚════════════════════════════════╝"""

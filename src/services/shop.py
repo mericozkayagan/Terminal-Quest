@@ -1,79 +1,51 @@
-from typing import List, Dict
+from typing import List, Optional
+from ..models.items import Item, generate_random_item
 from ..models.character import Player
-from ..models.items import (
-    Item,
-    Equipment,
-    Consumable,
-    RUSTY_SWORD,
-    LEATHER_ARMOR,
-    HEALING_SALVE,
-    POISON_VIAL,
-    VAMPIRIC_BLADE,
-    CURSED_AMULET,
-)
-from ..utils.display import type_text, clear_screen
-from ..config.settings import GAME_BALANCE, DISPLAY_SETTINGS
+from src.display.shop.shop_view import ShopView
+from src.display.common.message_view import MessageView
 
 
 class Shop:
     def __init__(self):
-        self.inventory: List[Item] = [
-            RUSTY_SWORD,
-            LEATHER_ARMOR,
-            HEALING_SALVE,
-            POISON_VIAL,
-            VAMPIRIC_BLADE,
-            CURSED_AMULET,
-        ]
+        self.inventory: List[Item] = []
+        self.refresh_inventory()
 
-    def show_inventory(self, player: Player):
-        """Display shop inventory"""
-        clear_screen()
-        type_text("\nWelcome to the Shop!")
-        print(f"\nYour Gold: {player.inventory['Gold']}")
+    def refresh_inventory(self):
+        """Refresh shop inventory with new random items"""
+        self.inventory.clear()
+        num_items = 5  # Number of items to generate
+        for _ in range(num_items):
+            item = generate_random_item()
+            self.inventory.append(item)
 
-        print("\nAvailable Items:")
-        for i, item in enumerate(self.inventory, 1):
-            print(f"\n{i}. {item.name} - {item.value} Gold")
-            print(f"   {item.description}")
-            if isinstance(item, Equipment):
-                mods = [
-                    f"{stat}: {value}" for stat, value in item.stat_modifiers.items()
-                ]
-                print(f"   Stats: {', '.join(mods)}")
-                print(f"   Durability: {item.durability}/{item.max_durability}")
-            elif isinstance(item, Consumable):
-                effects = []
-                for effect in item.effects:
-                    if "heal_health" in effect:
-                        effects.append(f"Heals {effect['heal_health']} HP")
-                    if "heal_mana" in effect:
-                        effects.append(f"Restores {effect['heal_mana']} MP")
-                    if "status_effect" in effect:
-                        effects.append(f"Applies {effect['status_effect'].name}")
-                print(f"   Effects: {', '.join(effects)}")
-            print(f"   Rarity: {item.rarity.value}")
+    def show_shop_menu(self, player: Player, shop_view: ShopView):
+        """Display shop menu"""
+        shop_view.show_shop_welcome()
+        shop_view.show_inventory(self.inventory, player.inventory["Gold"])
+        print("\nChoose an action:")
+        print("1. Buy")
+        print("2. Sell")
+        print("3. Leave")
 
-    def buy_item(self, player: Player, item_index: int) -> bool:
-        """Process item purchase"""
+    def buy_item(self, player: Player, item_index: int, shop_view: ShopView):
+        """Handle item purchase"""
         if 0 <= item_index < len(self.inventory):
             item = self.inventory[item_index]
             if player.inventory["Gold"] >= item.value:
                 player.inventory["Gold"] -= item.value
                 player.inventory["items"].append(item)
-                type_text(f"\nYou bought {item.name}!")
-                return True
+                self.inventory.pop(item_index)
+                shop_view.show_transaction_result(True, f"Purchased {item.name}")
             else:
-                type_text("\nNot enough gold!")
-        return False
+                shop_view.show_transaction_result(False, "Not enough gold!")
+        else:
+            shop_view.show_transaction_result(False, "Invalid item!")
 
-    def sell_item(self, player: Player, item_index: int) -> bool:
-        """Process item sale"""
+    def sell_item(self, player: Player, item_index: int, shop_view: ShopView):
+        """Handle item sale"""
         if 0 <= item_index < len(player.inventory["items"]):
-            item = player.inventory["items"][item_index]
-            sell_value = int(item.value * GAME_BALANCE["SELL_PRICE_MULTIPLIER"])
-            player.inventory["Gold"] += sell_value
-            player.inventory["items"].pop(item_index)
-            type_text(f"\nSold {item.name} for {sell_value} Gold!")
-            return True
-        return False
+            item = player.inventory["items"].pop(item_index)
+            player.inventory["Gold"] += item.value // 2
+            shop_view.show_transaction_result(True, f"Sold {item.name}")
+        else:
+            shop_view.show_transaction_result(False, "Invalid item!")
