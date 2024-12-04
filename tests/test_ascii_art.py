@@ -28,7 +28,10 @@ class TestAsciiArt(unittest.TestCase):
 
     def test_display_ascii_art(self):
         ascii_art = "Test ASCII Art"
-        display_ascii_art(ascii_art)  # This function just prints the art, so no assertion needed
+        from unittest.mock import patch
+        with patch('builtins.print') as mock_print:
+            display_ascii_art(ascii_art)
+            mock_print.assert_called_once_with(ascii_art)
 
 class TestEnvironmentalEffects(unittest.TestCase):
 
