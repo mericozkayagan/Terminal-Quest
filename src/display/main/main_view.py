@@ -69,7 +69,10 @@ class GameView(BaseView):
             return
 
         for i, item in enumerate(player.inventory["items"], 1):
-            sell_value = int(item.value * sell_multiplier)
+            try:
+                sell_value = max(1, int(item.value * sell_multiplier))
+            except (OverflowError, ValueError):
+                sell_value = 1
             print(f"║ {i}. {item.name:<28} │ ◈ {sell_value} Gold ║")
         print("╚══════════════════════════════════════════════╝")
         print("\nChoose an item to sell (0 to cancel): ")

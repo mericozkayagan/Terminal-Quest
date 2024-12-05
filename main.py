@@ -37,9 +37,17 @@ def main():
     player_name = input().strip()
 
     # Use character creation service
-    player = CharacterCreationService.create_character(player_name)
-    if not player:
-        MessageView.show_error("Character creation failed!")
+    try:
+        player = CharacterCreationService.create_character(player_name)
+        if not player:
+            MessageView.show_error("Character creation failed: Invalid name provided")
+            return
+    except ValueError as e:
+        MessageView.show_error(f"Character creation failed: {str(e)}")
+        return
+    except Exception as e:
+        MessageView.show_error("An unexpected error occurred during character creation")
+        logger.error(f"Character creation error: {str(e)}")
         return
 
     # Initialize inventory
