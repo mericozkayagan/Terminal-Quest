@@ -70,6 +70,8 @@ def generate_enemy_art(name: str) -> PixelArt:
         # Add wings
         for x in range(3, 17):
             art.set_pixel(x, 2, DARK_RED, char="▀")
+    else:
+        raise ValueError(f"Unknown enemy name: {name}")
 
     return art
 
