@@ -12,6 +12,10 @@ class Pixel:
 
 class PixelArt:
     def __init__(self, width: int, height: int):
+        if not isinstance(width, int) or not isinstance(height, int):
+            raise TypeError("Width and height must be integers")
+        if width <= 0 or height <= 0:
+            raise ValueError("Width and height must be positive")
         self.width = width
         self.height = height
         self.pixels: List[List[Pixel]] = [
