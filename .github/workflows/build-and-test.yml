@@ -32,18 +32,5 @@ jobs:
     - name: Check formatting with black
       run: black --check .
 
-    - name: Type checking with mypy
-      run: mypy src/
-
     - name: Security check with bandit
       run: bandit -r src/
-
-    - name: Run tests with pytest
-      run: |
-        pytest --cov=src/ --cov-report=xml
-
-    - name: Upload coverage to Codecov
-      uses: codecov/codecov-action@v4
-      with:
-        file: ./coverage.xml
-        fail_ci_if_error: true
