@@ -3,10 +3,31 @@ from typing import Dict, List, Optional
 import random
 from .character_classes import CharacterClass
 from .status_effects import StatusEffect
+from ..utils.ascii_art import ensure_entity_art
 
 
 class Character:
-    def __init__(self):
+    def __init__(
+        self,
+        name: str,
+        description: str = "",
+        health: int = 100,
+        attack: int = 15,
+        defense: int = 5,
+        level: int = 1,
+    ):
+        # Basic attributes
+        self.name = name
+        self.description = description
+        self.level = level
+
+        # Combat stats
+        self.health = health
+        self.max_health = health
+        self.attack = attack
+        self.defense = defense
+
+        # Status and equipment
         self.status_effects: Dict[str, StatusEffect] = {}
         self.equipment: Dict[str, Optional["Equipment"]] = {  # type: ignore
             "weapon": None,
@@ -45,20 +66,26 @@ class Character:
 
 class Player(Character):
     def __init__(self, name: str, char_class: CharacterClass):
-        super().__init__()
-        self.name = name
+        super().__init__(
+            name=name,
+            description=char_class.description,
+            health=char_class.base_health,
+            attack=char_class.base_attack,
+            defense=char_class.base_defense,
+            level=1,
+        )
+        # Class-specific attributes
         self.char_class = char_class
-        self.health = char_class.base_health
-        self.max_health = char_class.base_health
-        self.attack = char_class.base_attack
-        self.defense = char_class.base_defense
         self.mana = char_class.base_mana
         self.max_mana = char_class.base_mana
-        self.inventory = {"Health Potion": 2, "Mana Potion": 2, "Gold": 0, "items": []}
-        self.level = 1
+        self.skills = char_class.skills
+
+        # Progress attributes
         self.exp = 0
         self.exp_to_level = 100
-        self.skills = char_class.skills
+
+        # Inventory
+        self.inventory = {"Health Potion": 2, "Mana Potion": 2, "Gold": 0, "items": []}
 
     def equip_item(self, item: "Equipment", slot: str) -> Optional["Equipment"]:  # type: ignore
         """Equip an item and return the previously equipped item if any"""
@@ -73,27 +100,84 @@ class Player(Character):
         item.equip(self)
         return old_item
 
+    def rest(self) -> int:
+        """Rest to recover health and mana
+        Returns the amount of health recovered"""
+        max_heal = self.max_health - self.health
+        heal_amount = min(max_heal, self.max_health * 0.3)  # Heal 30% of max health
+
+        self.health = min(self.max_health, self.health + heal_amount)
+        self.mana = min(
+            self.max_mana, self.mana + self.max_mana * 0.3
+        )  # Recover 30% of max mana
+
+        return int(heal_amount)
+
 
 class Enemy(Character):
     def __init__(
-        self, name: str, health: int, attack: int, defense: int, exp: int, gold: int
+        self,
+        name: str,
+        description: str,
+        health: int,
+        attack: int,
+        defense: int,
+        level: int = 1,
+        art: str = None,
     ):
-        super().__init__()
-        self.name = name
-        self.health = health
-        self.attack = attack
-        self.defense = defense
-        self.exp = exp
-        self.gold = gold
+        super().__init__(name, description, health, attack, defense, level)
+        self.art = art
+        self.max_health = health
+        self.exp_reward = level * 10  # Simple exp reward based on level
+
+    def get_drops(self) -> List["Item"]:  # type: ignore
+        """Calculate and return item drops"""
+        # Implementation for item drops can be added here
+        return []
 
 
-def get_fallback_enemy() -> Enemy:
-    """Return a random fallback enemy when AI generation fails"""
-    enemies = [
-        Enemy("Goblin", 30, 8, 2, 20, 10),
-        Enemy("Skeleton", 45, 12, 4, 35, 20),
-        Enemy("Orc", 60, 15, 6, 50, 30),
-        Enemy("Dark Mage", 40, 20, 3, 45, 25),
-        Enemy("Dragon", 100, 25, 10, 100, 75),
+def get_fallback_enemy(player_level: int = 1) -> Enemy:
+    """Create a fallback enemy when generation fails"""
+    fallback_enemies = [
+        {
+            "name": "Shadow Wraith",
+            "description": "A dark spirit that haunts the shadows",
+            "base_health": 50,
+            "base_attack": 10,
+            "base_defense": 3,
+            "art": """
+     ╔═══════╗
+     ║ ◇◇◇◇◇ ║
+     ║ ▓▓▓▓▓ ║
+     ║ ░░░░░ ║
+     ╚═══════╝
+            """,
+        },
+        {
+            "name": "Corrupted Zealot",
+            "description": "A fallen warrior consumed by darkness",
+            "base_health": 60,
+            "base_attack": 12,
+            "base_defense": 4,
+            "art": """
+     ╔═══════╗
+     ║ ▲▲▲▲▲ ║
+     ║ ║║║║║ ║
+     ║ ▼▼▼▼▼ ║
+     ╚═══════╝
+            """,
+        },
     ]
-    return random.choice(enemies)
+
+    enemy_data = random.choice(fallback_enemies)
+
+    return Enemy(
+        name=enemy_data["name"],
+        description=enemy_data["description"],
+        health=enemy_data["base_health"],
+        attack=enemy_data["base_attack"],
+        defense=enemy_data["base_defense"],
+        level=player_level,
+        art=enemy_data["art"],
+        exp_reward=player_level * 10,
+    )

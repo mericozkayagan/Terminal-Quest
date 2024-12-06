@@ -37,3 +37,30 @@ class JSONCleaner:
                 return json.dumps(cleaned_data, indent=2)
             except Exception:
                 return None
+
+    @staticmethod
+    def clean_art_content(content: str) -> Optional[str]:
+        """Clean AI-generated art content"""
+        try:
+            # Try to parse as JSON first
+            data = json.loads(content)
+
+            # Handle different JSON structures
+            if isinstance(data, dict):
+                if "ascii_art" in data:
+                    art = data["ascii_art"]
+                    if isinstance(art, list):
+                        return "\n".join(art)
+                    return str(art)
+
+            # If it's not JSON or doesn't contain art, return the raw content
+            return content.strip()
+
+        except json.JSONDecodeError:
+            # If it's not JSON, clean and return the raw content
+            cleaned = content.strip()
+            # Remove any markdown code block markers
+            cleaned = cleaned.replace("```", "")
+            cleaned = cleaned.replace("ascii", "")
+            cleaned = cleaned.replace("art", "")
+            return cleaned.strip()

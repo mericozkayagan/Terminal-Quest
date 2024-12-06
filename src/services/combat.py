@@ -1,15 +1,17 @@
 from typing import Optional, List
 
+from src.display.base.base_view import BaseView
 from src.display.inventory import inventory_view
-from ..models.character import Player, Enemy, Character
-from ..models.items import Item
+from src.models.character import Player, Enemy, Character
+from src.models.items import Item, Consumable
 from src.display.combat.combat_view import CombatView
 from src.display.common.message_view import MessageView
-from ..config.settings import GAME_BALANCE, DISPLAY_SETTINGS
+from src.config.settings import GAME_BALANCE, DISPLAY_SETTINGS
 import random
 import time
-from .art_generator import generate_enemy_art
-from ..utils.ascii_art import display_ascii_art
+from src.utils.ascii_art import display_ascii_art
+from src.display.themes.dark_theme import DECORATIONS as dec
+from src.display.themes.dark_theme import SYMBOLS as sym
 
 
 def calculate_damage(
@@ -62,65 +64,134 @@ def check_for_drops(enemy: Enemy) -> Optional[Item]:
     return None
 
 
-def combat(player: Player, enemy: Enemy, combat_view: CombatView) -> bool:
-    """Handle combat sequence"""
+def combat(player: Player, enemy: Enemy, combat_view: CombatView) -> Optional[bool]:
+    """Handle combat sequence. Returns:
+    - True for victory
+    - False for retreat
+    - None for death
+    """
+    combat_log = []
+
     while enemy.health > 0 and player.health > 0:
-        combat_view.show_combat_status(player, enemy)
+        BaseView.clear_screen()
+        combat_view.show_combat_status(player, enemy, combat_log)
+
         choice = input("\nChoose your action: ").strip()
 
-        if choice == "1":
-            # Basic attack
-            damage = player.get_total_attack()
-            enemy.health -= damage
-            player.health -= enemy.attack
+        if choice == "1":  # Attack
+            # Calculate damage with some randomization
+            player_damage = player.get_total_attack() + random.randint(-2, 2)
+            enemy_damage = enemy.attack + random.randint(-1, 1)
 
-        elif choice == "2":
-            # Use skill
+            # Apply damage
+            enemy.health -= player_damage
+            player.health -= enemy_damage
+
+            # Add combat log messages
+            combat_log.insert(
+                0, f"{sym['ATTACK']} You strike for {player_damage} damage!"
+            )
+            combat_log.insert(
+                0, f"{sym['ATTACK']} {enemy.name} retaliates for {enemy_damage} damage!"
+            )
+
+            # Trim log to keep last 5 messages
+            combat_log = combat_log[:5]
+
+        elif choice == "2":  # Use skill
+            BaseView.clear_screen()
             combat_view.show_skills(player)
+
             try:
-                skill_choice = int(input("\nChoose skill: ")) - 1
+                skill_choice = int(input("\nChoose skill (0 to cancel): ")) - 1
+                if skill_choice == -1:
+                    continue
+
                 if 0 <= skill_choice < len(player.skills):
                     skill = player.skills[skill_choice]
                     if player.mana >= skill.mana_cost:
-                        enemy.health -= skill.damage
+                        # Calculate and apply skill damage
+                        skill_damage = skill.damage + random.randint(-3, 3)
+                        enemy.health -= skill_damage
                         player.mana -= skill.mana_cost
-                        player.health -= enemy.attack
+
+                        # Enemy still gets to attack
+                        enemy_damage = enemy.attack + random.randint(-1, 1)
+                        player.health -= enemy_damage
+
+                        # Add combat log messages
+                        combat_log.insert(
+                            0,
+                            f"{sym['SKILL']} You cast {skill.name} for {skill_damage} damage!",
+                        )
+                        combat_log.insert(
+                            0, f"{sym['MANA']} Consumed {skill.mana_cost} mana"
+                        )
+                        combat_log.insert(
+                            0,
+                            f"{sym['ATTACK']} {enemy.name} retaliates for {enemy_damage} damage!",
+                        )
                     else:
-                        print("Not enough mana!")
+                        combat_log.insert(0, f"{sym['MANA']} Not enough mana!")
+                else:
+                    combat_log.insert(0, "Invalid skill selection!")
             except ValueError:
-                print("Invalid choice!")
+                combat_log.insert(0, "Invalid input!")
 
-        elif choice == "3":
-            # Use item
-            inventory_view.show_inventory(player)
+        elif choice == "3":  # Use item
+            BaseView.clear_screen()
+            combat_view.show_combat_items(player)
 
-        elif choice == "4":
-            # Retreat
-            return False
+            try:
+                item_choice = int(input("\nChoose item: ")) - 1
+                if item_choice == -1:
+                    continue
 
-    # Combat ended
-    if enemy.health <= 0:
-        rewards = {
-            "exp": enemy.exp_reward,
-            "gold": enemy.gold_reward,
-            "items": enemy.get_drops(),
-        }
-        combat_view.show_battle_result(player, enemy, rewards)
+                usable_items = [
+                    (i, item)
+                    for i, item in enumerate(player.inventory["items"], 1)
+                    if isinstance(item, Consumable)
+                ]
 
-        # Handle rewards
-        player.exp += rewards["exp"]
-        player.inventory["Gold"] += rewards["gold"]
-        for item in rewards["items"]:
-            player.inventory["items"].append(item)
+                if 0 <= item_choice < len(usable_items):
+                    idx, item = usable_items[item_choice]
+                    if item.use(player):
+                        player.inventory["items"].pop(idx - 1)
+                        combat_log.insert(0, f"Used {item.name}")
 
-        # Check level up
-        if player.check_level_up():
-            gains = player.level_up()
-            combat_view.show_level_up(player, gains)
+                        # Enemy still gets to attack
+                        enemy_damage = enemy.attack + random.randint(-1, 1)
+                        player.health -= enemy_damage
+                        combat_log.insert(
+                            0,
+                            f"{sym['ATTACK']} {enemy.name} retaliates for {enemy_damage} damage!",
+                        )
+                else:
+                    combat_log.insert(0, "Invalid item selection!")
+            except ValueError:
+                combat_log.insert(0, "Invalid input!")
 
-        return True
+        elif choice == "4":  # Retreat
+            escape_chance = 0.7 - (enemy.level * 0.05)
+            if random.random() < escape_chance:
+                combat_view.show_retreat_attempt(success=True)
+                return False  # Successful retreat
+            else:
+                enemy_damage = enemy.attack + random.randint(1, 3)
+                player.health -= enemy_damage
+                combat_view.show_retreat_attempt(
+                    success=False, damage_taken=enemy_damage, enemy_name=enemy.name
+                )
+                combat_log.insert(
+                    0,
+                    f"Failed to escape! {enemy.name} hits you for {enemy_damage} damage!",
+                )
 
-    return False
+        # Check for death after each action
+        if player.health <= 0:
+            return None  # Player died
+
+    return enemy.health <= 0  # True for victory, False shouldn't happen here
 
 
 def handle_level_up(player: Player):

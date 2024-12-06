@@ -19,11 +19,13 @@ SYMBOLS = {
     "POTION": "⚱",  # Potion vial
     "CURSE": "⚉",  # Curse symbol
     "SOUL": "❂",  # Soul essence
+    "SKILL": "✤",  # Add this line
 }
 
 DECORATIONS = {
     "TITLE": {"PREFIX": "ᚷ • ✧ • ", "SUFFIX": " • ✧ • ᚷ"},
     "SECTION": {"START": "┄┄ ", "END": " ┄┄"},
+    "ERROR": {"START": "⚠ ", "END": " ⚠"},
     "SEPARATOR": "✧──────────────────────✧",
     "SMALL_SEP": "• • •",
     "RUNES": ["ᚱ", "ᚨ", "ᚷ", "ᚹ", "ᛟ", "ᚻ", "ᚾ", "ᛉ", "ᛋ"],

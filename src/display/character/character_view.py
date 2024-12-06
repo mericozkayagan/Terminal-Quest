@@ -1,10 +1,10 @@
 from typing import List
+import random
 
 from src.models.character_classes import CharacterClass
 from src.display.base.base_view import BaseView
 from src.display.themes.dark_theme import SYMBOLS as sym
 from src.display.themes.dark_theme import DECORATIONS as dec
-import random
 
 
 class CharacterView(BaseView):
@@ -13,6 +13,7 @@ class CharacterView(BaseView):
     @staticmethod
     def show_character_creation():
         """Display character creation screen"""
+        BaseView.clear_screen()
         print(f"\n{dec['TITLE']['PREFIX']}Dark Genesis{dec['TITLE']['SUFFIX']}")
         print(f"{dec['SEPARATOR']}")
         print("\nSpeak thy name, dark one:")
@@ -21,6 +22,7 @@ class CharacterView(BaseView):
     @staticmethod
     def show_character_class(char_class: "CharacterClass"):
         """Display character class details"""
+        BaseView.clear_screen()
         print(f"\n{dec['TITLE']['PREFIX']}{char_class.name}{dec['TITLE']['SUFFIX']}")
         print(f"{dec['SEPARATOR']}")
 
@@ -34,18 +36,47 @@ class CharacterView(BaseView):
     @staticmethod
     def show_class_selection(classes: List["CharacterClass"]):
         """Display class selection screen"""
-        print(
-            f"\n{dec['TITLE']['PREFIX']}Choose Your Dark Path{dec['TITLE']['SUFFIX']}"
-        )
-        print(f"{dec['SEPARATOR']}")
-
-        for i, char_class in enumerate(classes, 1):
+        try:
             print(
-                f"\n{dec['SECTION']['START']}{i}. {char_class.name}{dec['SECTION']['END']}"
+                f"\n{dec['TITLE']['PREFIX']}Choose Your Dark Path{dec['TITLE']['SUFFIX']}"
             )
-            if hasattr(char_class, "art") and char_class.art:
-                print(f"\n{char_class.art}")
-            print(f"\n  {char_class.description}")
+            print(f"{dec['SEPARATOR']}")
+
+            for i, char_class in enumerate(classes, 1):
+                # Add separator between classes
+                if i > 1:
+                    print("\n" + "─" * 40 + "\n")
+
+                print(
+                    f"\n{dec['SECTION']['START']}{i}. {char_class.name}{dec['SECTION']['END']}"
+                )
+
+                if char_class.art:
+                    print(f"\n{char_class.art}")
+                else:
+                    print("\n[No art available]")
+
+                print(f"\n  {char_class.description}")
+                print(f"\n{dec['SMALL_SEP']}")
+                print(f"  {sym['HEALTH']} Health    {char_class.base_health}")
+                print(f"  {sym['MANA']} Mana      {char_class.base_mana}")
+                print(f"  {sym['ATTACK']} Attack    {char_class.base_attack}")
+                print(f"  {sym['DEFENSE']} Defense   {char_class.base_defense}")
+
+                if char_class.skills:
+                    print(f"\n  ✤ Skills:")
+                    for skill in char_class.skills:
+                        rune = random.choice(dec["RUNES"])
+                        print(f"    {rune} {skill.name}")
+                        print(f"      {sym['ATTACK']} Power: {skill.damage}")
+                        print(f"      {sym['MANA']} Cost: {skill.mana_cost}")
+                        print(
+                            f"      {random.choice(dec['RUNES'])} {skill.description}"
+                        )
+
+        except Exception as e:
+            print("\n⚠ Error ⚠")
+            print(f"  An error occurred: {str(e)}")
 
     @staticmethod
     def _show_stats(char_class: "CharacterClass"):

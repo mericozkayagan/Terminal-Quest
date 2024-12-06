@@ -4,10 +4,13 @@ from ..models.skills import Skill
 from ..models.character import Enemy
 from ..config.settings import STAT_RANGES
 from .ai_core import generate_content
-from .art_generator import generate_ascii_art, generate_class_ascii_art
+from .art_generator import generate_class_art, generate_enemy_art
+from src.utils.ascii_art import save_ascii_art, load_ascii_art
+from src.utils.json_cleaner import JSONCleaner
 import json
 import random
 import logging
+import os
 
 # Define fallback classes
 FALLBACK_CLASSES = [
@@ -115,9 +118,7 @@ CRITICAL JSON RULES:
         character_class = CharacterClass(**char_data)
 
         # Generate and attach art
-        art = generate_class_ascii_art(
-            character_class.name, character_class.description
-        )
+        art = generate_class_art(character_class.name, character_class.description)
         if art:
             character_class.art = art.strip()
 
@@ -129,8 +130,13 @@ CRITICAL JSON RULES:
         return random.choice(FALLBACK_CLASSES)
 
 
-def generate_enemy() -> Optional[Enemy]:
-    prompt = """Create a dark fantasy enemy corrupted by the God of Hope's invasion.
+def generate_enemy(player_level: int = 1) -> Optional[Enemy]:
+    """Generate an enemy based on player level"""
+    logger.info(f"Generating enemy for player level {player_level}")
+
+    try:
+        # Generate enemy data first
+        data_prompt = """Create a dark fantasy enemy corrupted by the God of Hope's invasion.
 
 Background: The God of Hope's presence twists all it touches, corrupting beings with a perverted form of hope that drives them mad.
 These creatures now roam the realm, spreading the Curse of Hope.
@@ -153,39 +159,46 @@ STRICT JSON RULES:
 Required JSON structure:
 {
     "name": "string (enemy name)",
-    "description": "string (2-3 sentences about corruption)",
-    "health": f"integer between {STAT_RANGES['ENEMY_HEALTH'][0]}-{STAT_RANGES['ENEMY_HEALTH'][1]}",
-    "attack": f"integer between {STAT_RANGES['ENEMY_ATTACK'][0]}-{STAT_RANGES['ENEMY_ATTACK'][1]}",
-    "defense": f"integer between {STAT_RANGES['ENEMY_DEFENSE'][0]}-{STAT_RANGES['ENEMY_DEFENSE'][1]}",
-    "exp": f"integer between {STAT_RANGES['ENEMY_EXP'][0]}-{STAT_RANGES['ENEMY_EXP'][1]}",
-    "gold": f"integer between {STAT_RANGES['ENEMY_GOLD'][0]}-{STAT_RANGES['ENEMY_GOLD'][1]}"
+    "description": "string (enemy description)",
+    "level": "integer between 1-5",
+    "health": "integer between 30-100",
+    "attack": "integer between 8-25",
+    "defense": "integer between 2-10",
+    "exp_reward": "integer between 20-100",
+    "gold_reward": "integer between 10-50"
 }"""
 
-    content = generate_content(prompt)
-    if not content:
-        return None
+        content = generate_content(data_prompt)
+        if not content:
+            return None
 
-    try:
         data = json.loads(content)
-        # Validate and normalize stats
-        stats = {
-            "health": (30, 100),
-            "attack": (8, 25),
-            "defense": (2, 10),
-            "exp": (20, 100),
-            "gold": (10, 100),
-        }
+        logger.debug(f"Parsed enemy data: {data}")
 
-        for stat, (min_val, max_val) in stats.items():
-            data[stat] = max(min_val, min(max_val, int(data[stat])))
+        # Create enemy from raw stats
+        enemy = Enemy(
+            name=data["name"],
+            description=data.get("description", ""),
+            health=int(data["health"]),
+            attack=int(data["attack"]),
+            defense=int(data["defense"]),
+            level=player_level,
+            art=None,  # We'll set this later if art generation succeeds
+        )
 
-        # Generate ASCII art
-        art = generate_ascii_art("enemy", data["name"])
-        enemy = Enemy(**data)
-        if art:
-            enemy.art = art
+        # Generate and attach art
+        try:
+            art = generate_enemy_art(enemy.name, enemy.description)
+            if art:
+                enemy.art = art
+        except Exception as art_error:
+            logger.error(f"Art generation failed: {art_error}")
+            # Continue without art
 
+        logger.info(f"Successfully generated enemy: {enemy.name}")
         return enemy
+
     except Exception as e:
-        logger.error(f"Error processing enemy: {e}")
+        logger.error(f"Enemy generation failed: {str(e)}")
+        logger.error("Traceback: ", exc_info=True)
         return None

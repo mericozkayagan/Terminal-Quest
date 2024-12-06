@@ -1,8 +1,12 @@
 import os
-from ..services.art_generator import generate_class_art
-from ..utils.pixel_art import PixelArt
-from typing import Optional
-from src.config.settings import ENABLE_AI_CLASS_GENERATION
+from typing import Optional, Union
+from src.config.settings import ENABLE_AI_ART_GENERATION
+from src.services.art_generator import (
+    generate_class_art,
+    generate_enemy_art,
+    generate_item_art,
+)
+from src.utils.pixel_art import PixelArt
 
 
 def convert_pixel_art_to_ascii(pixel_art):
@@ -28,15 +32,16 @@ def display_ascii_art(art):
         print("Unsupported art format")
 
 
-def save_ascii_art(art: PixelArt, filename: str):
+def save_ascii_art(art: Union[PixelArt, str], filename: str):
     """Save ASCII art to file"""
     os.makedirs("data/art", exist_ok=True)
     safe_filename = filename.lower().replace("'", "").replace(" ", "_")
     filepath = f"data/art/{safe_filename}.txt"
 
     try:
+        content = art.render() if isinstance(art, PixelArt) else str(art)
         with open(filepath, "w", encoding="utf-8") as f:
-            f.write(art.render())
+            f.write(content)
     except Exception as e:
         print(f"Error saving art: {e}")
 
@@ -54,16 +59,28 @@ def load_ascii_art(filename: str) -> Optional[str]:
         return None
 
 
-def ensure_character_art(class_name: str) -> str:
-    """Generate and save character art if it doesn't exist"""
-    safe_name = class_name.lower().replace("'", "").replace(" ", "_") + ".txt"
-    art_path = os.path.join("data/art", safe_name)
+def ensure_entity_art(entity_name: str, entity_type: str, description: str = "") -> str:
+    """Generate and save art for any entity if it doesn't exist"""
+    safe_name = (
+        f"{entity_type}_{entity_name.lower().replace(' ', '_').replace("'", '')}"
+    )
+    art_path = os.path.join("data/art", f"{safe_name}.txt")
 
     if not os.path.exists(art_path):
-        if ENABLE_AI_CLASS_GENERATION:
-            art = generate_class_art(class_name)
-            save_ascii_art(art, safe_name)
+        if ENABLE_AI_ART_GENERATION:
+            art_func = {
+                "class": generate_class_art,
+                "enemy": generate_enemy_art,
+                "item": generate_item_art,
+            }.get(entity_type)
+
+            if art_func:
+                art = art_func(entity_name, description)
+                if art:
+                    save_ascii_art(art, safe_name)
+                else:
+                    return ""
         else:
-            return ""  # Return empty string if AI generation is disabled
+            return ""
 
     return safe_name

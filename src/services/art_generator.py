@@ -1,278 +1,220 @@
-import json
-from typing import Optional, Dict, List, Tuple
-from ..config.settings import AI_SETTINGS
-from .ai_core import generate_content
-from ..utils.pixel_art import PixelArt
-from ..utils.art_utils import (
-    draw_circular_shape,
-    draw_default_shape,
-    draw_tall_shape,
-    add_feature,
-    add_detail,
-    load_ascii_art,
-)
+from typing import Optional, Dict, Any
+from dataclasses import dataclass
 import logging
-import time
+from src.utils.json_cleaner import JSONCleaner
+from .ai_core import generate_content
 
 logger = logging.getLogger(__name__)
 
 
-def generate_ascii_art(
-    entity_type: str, name: str, width: int = 20, height: int = 10
-) -> Optional[str]:
-    """Generate ASCII art using text prompts"""
-    prompt = f"""Create a {width}x{height} ASCII art for a {entity_type} named '{name}' in a dark fantasy setting.
-    Rules:
-    1. Use ONLY these characters: ░ ▒ ▓ █ ▄ ▀ ║ ═ ╔ ╗ ╚ ╝ ♦ ◆ ◢ ◣
-    2. Output EXACTLY {height} lines
-    3. Each line must be EXACTLY {width} characters wide
-    4. NO explanations or comments, ONLY the ASCII art
-    5. Create a distinctive silhouette that represents the character
-    6. Use darker characters (▓ █) for main body
-    7. Use lighter characters (░ ▒) for details
-    8. Use special characters (♦ ◆) for highlights
+@dataclass
+class ArtGenerationConfig:
+    width: int = 30
+    height: int = 15
+    max_retries: int = 3
+    style: str = "dark fantasy"
+    border: bool = True
+    characters: str = "░▒▓█▀▄╱╲╳┌┐└┘│─├┤┬┴┼╭╮╯╰◣◢◤◥╱╲╳▁▂▃▅▆▇◆♦⚊⚋╍╌┄┅┈┉"
 
-    Example format:
-    ╔════════════╗
-    ║  ▄▀▄▀▄▀▄   ║
-    ║   ▓█▓█▓    ║
-    ║    ◆◆◆     ║
-    ╚════════════╝
+
+LORE = {
+    "world": """In an age where hope became poison, darkness emerged as salvation.
+    The God of Hope's invasion brought not comfort, but corruption - a twisted force
+    that warps reality with false promises and maddening light. Those touched by
+    this 'Curse of Hope' become enslaved to eternal, desperate optimism, their minds
+    fractured by visions of impossible futures. The curse manifests physically,
+    marking its victims with radiant cracks in their flesh that leak golden light.
+
+    Only those who embrace shadow, who shield their eyes from hope's blinding rays,
+    maintain their sanity. They are the last bastion against the spreading taint,
+    warriors who understand that in this fallen realm, true salvation lies in the
+    comforting embrace of darkness.""",
+    "class": """Champions who've learned to weaponize shadow itself, these warriors
+    bear dark sigils that protect them from hope's corruption. Each class represents
+    a different approach to surviving in a world where optimism kills and despair
+    shields. Their powers draw from the void between false hopes, turning the
+    absence of light into a force of preservation.""",
+    "enemy": """Victims of the Curse of Hope, these beings are twisted parodies of
+    their former selves. Holy knights whose zealous hope turned to madness, common
+    folk whose desperate wishes mutated them, and ancient guardians whose protective
+    nature was perverted by the God of Hope's touch. They radiate a sickly golden
+    light from their wounds, and their mouths eternally smile even as they destroy
+    all they once loved.""",
+    "item": """Artifacts of power in this darkened realm take two forms: those
+    corrupted by the God of Hope's touch, glowing with insidious golden light and
+    whispering false promises; and those forged in pure darkness, their surfaces
+    drinking in light itself. The corrupted items offer tremendous power at the cost
+    of slowly succumbing to hope's curse, while shadow-forged gear helps resist the
+    spreading taint.""",
+}
+
+
+def _generate_art(
+    prompt: str, config: ArtGenerationConfig = ArtGenerationConfig()
+) -> Optional[str]:
+    """Internal function to handle art generation with retries and validation.
+
+    Args:
+        prompt: The generation prompt
+        config: Art generation configuration settings
+
+    Returns:
+        Optional[str]: The generated and cleaned ASCII art, or None if generation fails
     """
-
-    content = generate_content(prompt)
-    return content if content else None
-
-
-def generate_enemy_art(name: str) -> PixelArt:
-    art = PixelArt(20, 10)
-
-    # Color palette
-    DARK_RED = (139, 0, 0)
-    BLOOD_RED = (190, 0, 0)
-    BONE_WHITE = (230, 230, 210)
-    SHADOW = (20, 20, 20)
-
-    if name.lower() == "skeleton":
-        # Draw skeleton
-        for y in range(2, 8):
-            art.set_pixel(10, y, BONE_WHITE, char="█")
-        # Add skull features
-        art.set_pixel(9, 3, SHADOW, char="●")
-        art.set_pixel(11, 3, SHADOW, char="●")
-        art.set_pixel(10, 5, SHADOW, char="▀")
-
-    elif name.lower() == "dragon":
-        # Draw dragon silhouette
-        for x in range(5, 15):
-            for y in range(3, 7):
-                art.set_pixel(x, y, BLOOD_RED, char="▄")
-        # Add wings
-        for x in range(3, 17):
-            art.set_pixel(x, 2, DARK_RED, char="▀")
-    else:
-        raise ValueError(f"Unknown enemy name: {name}")
-
-    return art
-
-
-def generate_item_art(item_type: str) -> PixelArt:
-    art = PixelArt(10, 10)
-
-    # Color palette
-    GOLD = (255, 215, 0)
-    SILVER = (192, 192, 192)
-    LEATHER = (139, 69, 19)
-
-    if item_type == "weapon":
-        # Draw sword
-        for y in range(2, 8):
-            art.set_pixel(5, y, SILVER, char="│")
-        art.set_pixel(5, 2, GOLD, char="◆")
-
-    elif item_type == "armor":
-        # Draw armor
-        for x in range(3, 7):
-            for y in range(3, 7):
-                art.set_pixel(x, y, LEATHER, char="▒")
-
-    return art
-
-
-def generate_class_art(class_name: str) -> PixelArt:
-    art = PixelArt(20, 20)
-
-    # Enhanced color palette
-    DARK = (30, 30, 40)
-    MAIN = (80, 80, 100)
-    ACCENT = (140, 20, 20)
-    HIGHLIGHT = (200, 200, 220)
-    GLOW = (180, 180, 220)
-
-    # Draw base character silhouette
-    for y in range(4, 16):
-        for x in range(7, 14):
-            art.set_pixel(x, y, MAIN, char="█")
-
-    # Class-specific details
-    name_lower = class_name.lower()
-    if "hope" in name_lower or "bane" in name_lower:
-        # Corrupted holy warrior
-        for y in range(4, 16):
-            art.set_pixel(6, y, DARK, char="░")
-            art.set_pixel(14, y, DARK, char="░")
-        # Corrupted halo
-        for x in range(7, 14):
-            art.set_pixel(x, 3, ACCENT, char="▄")
-        # Glowing eyes
-        art.set_pixel(8, 6, GLOW, char="●")
-        art.set_pixel(12, 6, GLOW, char="●")
-
-    elif "herald" in name_lower:
-        # Plague Herald with miasma
-        for y in range(3, 17):
-            art.set_pixel(5, y, DARK, char="░")
-            art.set_pixel(15, y, DARK, char="░")
-        # Hood
-        for x in range(7, 14):
-            art.set_pixel(x, 4, DARK, char="▀")
-        # Mask
-        art.set_pixel(9, 6, ACCENT, char="◣")
-        art.set_pixel(11, 6, ACCENT, char="◢")
-
-    elif "sovereign" in name_lower:
-        # Blood Sovereign with crown and regal details
-        for x in range(6, 15):
-            art.set_pixel(x, 3, ACCENT, char="♦")
-        # Cape
-        for y in range(5, 15):
-            art.set_pixel(5, y, MAIN, char="║")
-            art.set_pixel(15, y, MAIN, char="║")
-        # Glowing eyes
-        art.set_pixel(8, 6, GLOW, char="◆")
-        art.set_pixel(12, 6, GLOW, char="◆")
-
-    return art
-
-
-def get_art_path(art_name):
-    # Remove any file extension if present
-    art_name = art_name.split(".")[0]
-    # Return the correct path format
-    return f"{art_name}.txt"
-
-
-def load_monster_art(monster_name):
-    art_path = get_art_path(monster_name)
-    return load_ascii_art(art_path)
-
-
-def generate_class_ascii_art(
-    class_name: str, description: str, max_retries: int = 3
-) -> Optional[str]:
-    """Generate ASCII art for a character class with retries"""
-    logger = logging.getLogger(__name__)
-
-    for attempt in range(max_retries):
+    for attempt in range(config.max_retries):
         try:
-            prompt = f"""Create a 15x30 detailed human portrait ASCII art for the dark fantasy class '{class_name}'.
-            Class description: {description}
-
-            Rules:
-            1. Use these characters for facial features and details:
-               ░ ▒ ▓ █ ▀ ▄ ╱ ╲ ╳ ┌ ┐ └ ┘ │ ─ ├ ┤ ┬ ┴ ┼ ╭ ╮ ╯ ╰
-               ◣ ◢ ◤ ◥ ╱ ╲ ╳ ▁ ▂ ▃ ▅ ▆ ▇ ◆ ♦ ⚊ ⚋ ╍ ╌ ┄ ┅ ┈ ┉
-            2. Create EXACTLY 15 lines of art
-            3. Each line must be EXACTLY 30 characters
-            4. Return ONLY the raw ASCII art, no JSON, no quotes
-            5. Focus on DETAILED HUMAN FACE and upper body where:
-               - Use shading (░▒▓█) for skin tones and shadows
-               - Show detailed facial features (eyes, nose, mouth)
-               - Include hair with flowing details
-               - Add class-specific headgear/hood/crown
-               - Show shoulders and upper chest with armor/clothing
-
-            Example format for a Dark Knight:
-            ╔════════════════════════════════╗
-            ║      ▄▄███████████▄▄          ║
-            ║    ▄█▀▀░░░░░░░░░▀▀█▄         ║
-            ║   ██░▒▓████████▓▒░██         ║
-            ║  ██░▓█▀╔══╗╔══╗▀█▓░██        ║
-            ║  █▓▒█╔══║██║══╗█▒▓█         ║
-            ║  █▓▒█║◆═╚══╝═◆║█▒▓█         ║
-            ║  ██▓█╚════════╝█▓██         ║
-            ║   ███▀▀══════▀▀███          ║
-            ║  ██╱▓▓▓██████▓▓▓╲██         ║
-            ║ ██▌║▓▓▓▓▀██▀▓▓▓▓║▐██        ║
-            ║ ██▌║▓▓▓▓░██░▓▓▓▓║▐██        ║
-            ║  ██╲▓▓▓▓░██░▓▓▓▓╱██         ║
-            ║   ███▄▄░████░▄▄███          ║
-            ╚════════════════════════════════╝
-
-            Create similarly styled PORTRAIT art for {class_name} that shows:
-            {description}
-
-            Key elements to include:
-            1. Detailed facial structure with shading
-            2. Expressive eyes showing character's nature
-            3. Class-specific headwear or markings
-            4. Distinctive hair or hood design
-            5. Shoulder armor or clothing details
-            6. Magical effects or corruption signs
-            7. Background shading for depth
-            """
-
             content = generate_content(prompt)
             if not content:
-                logger.warning(f"Attempt {attempt + 1}: No content generated")
                 continue
 
-            # Clean up and validation code remains the same...
-            if content.strip().startswith("{"):
-                try:
-                    data = json.loads(content)
-                    if "art" in data or "ascii_art" in data or "character_art" in data:
-                        art_lines = (
-                            data.get("art")
-                            or data.get("ascii_art")
-                            or data.get("character_art")
-                        )
-                        return "\n".join(art_lines)
-                except json.JSONDecodeError:
-                    cleaned_content = (
-                        content.replace("{", "").replace("}", "").replace('"', "")
-                    )
-                    if "║" in cleaned_content or "╔" in cleaned_content:
-                        return cleaned_content.strip()
-            else:
-                if "║" in content or "╔" in content:
-                    return content.strip()
+            cleaned_art = JSONCleaner.clean_art_content(content)
+            if not cleaned_art:
+                continue
 
-            logger.warning(f"Attempt {attempt + 1}: Invalid art format received")
+            # Validate dimensions and characters
+            lines = cleaned_art.split("\n")
+            if len(lines) > config.height:
+                lines = lines[: config.height]
+
+            valid_chars = set(config.characters)
+            filtered_lines = []
+            for line in lines:
+                # Trim line to max width
+                line = line[: config.width]
+                # Filter out invalid characters
+                filtered_line = "".join(
+                    c if c in valid_chars or c in "║╔╗╚╝ " else " " for c in line
+                )
+                # Pad line to exact width
+                filtered_line = filtered_line.ljust(config.width)
+                filtered_lines.append(filtered_line)
+
+            # Pad to exact height
+            while len(filtered_lines) < config.height:
+                filtered_lines.append(" " * config.width)
+
+            return "\n".join(filtered_lines)
 
         except Exception as e:
-            logger.error(f"Attempt {attempt + 1} failed: {str(e)}")
+            logger.error(f"Art generation attempt {attempt + 1} failed: {e}")
+            continue
 
-        if attempt < max_retries - 1:
-            time.sleep(1)
-
-    return generate_fallback_art(class_name)
+    logger.error("All art generation attempts failed")
+    return None
 
 
-def generate_fallback_art(class_name: str) -> str:
-    """Generate a detailed portrait fallback ASCII art"""
-    return f"""╔════════════════════════════════╗
-║      ▄▄███████████▄▄          ║
-║    ▄█▀▀░░░░░░░░░▀▀█▄         ║
-║   ██░▒▓████████▓▒░██         ║
-║  ██░▓█▀╔══╗╔══╗▀█▓░██        ║
-║  █▓▒█╔══║██║══╗█▒▓█         ║
-║  █▓▒█║◆═╚══╝═◆║█▒▓█         ║
-║  ██▓█╚════════╝█▓██         ║
-║   ███▀▀══════▀▀███          ║
-║  ██╱▓▓▓██████▓▓▓╲██         ║
-║ ██▌║▓▓▓▓▀██▀▓▓▓▓║▐██        ║
-║ ██▌║▓▓▓▓░██░▓▓▓▓║▐██        ║
-║  ██╲▓▓▓▓░██░▓▓▓▓╱██         ║
-║   ███▄▄░████░▄▄███          ║
-╚════════════════════════════════╝"""
+def generate_enemy_art(enemy_name: str, description: str) -> Optional[str]:
+    """Generate detailed ASCII art for corrupted enemies"""
+    prompt = f"""Create a corrupted being ASCII art for '{enemy_name}'.
+
+World Lore: {LORE['world']}
+Enemy Lore: {LORE['enemy']}
+Creature Description: {description}
+
+Requirements:
+1. Use ONLY these characters: {ArtGenerationConfig.characters}
+2. Create EXACTLY 8 lines of art
+3. Each line must be EXACTLY 30 characters
+4. Focus on CORRUPTION features:
+   - Twisted holy symbols
+   - False hope's radiance
+   - Corrupted flesh/form
+   - Madness in their features
+   - Signs of former nobility/purity
+
+Example format:
+╔═══════════════════════════╗
+║     ▄▄████████████▄▄      ║
+║   ▄█▓░╱║██████║╲░▓█▄      ║
+║  ██▓█▀▀╚════╝▀▀█▓██       ║
+║  ███╔═▓░▄▄▄▄░▓═╗███       ║
+║  ▀██║░▒▓████▓▒░║██▀       ║
+║   ██╚═▓▓▓██▓▓▓═╝██        ║
+║    ▀▀████▀▀████▀▀         ║
+╚═══════════════════════════╝
+
+Return ONLY the raw ASCII art."""
+
+    return _generate_art(prompt)
+
+
+def generate_item_art(item_name: str, description: str) -> Optional[str]:
+    """Generate detailed ASCII art for dark artifacts"""
+    prompt = f"""Create a dark artifact ASCII art for '{item_name}'.
+
+World Lore: {LORE['world']}
+Item Lore: {LORE['item']}
+Artifact Description: {description}
+
+Requirements:
+1. Use ONLY these characters: {ArtGenerationConfig.characters}
+2. Create EXACTLY 6 lines of art
+3. Each line must be EXACTLY 20 characters
+4. Focus on ARTIFACT features:
+   - Anti-hope wards
+   - Shadow essence flows
+   - Corrupted or pure state
+   - Power runes/symbols
+   - Material composition
+
+Example format:
+╔════════════════╗
+║  ▄▄████████▄   ║
+║ █▓░◆═══◆░▓█   ║
+║ ██╲▓▓██▓▓╱██  ║
+║  ▀█▄░──░▄█▀   ║
+╚════════════════╝
+
+Return ONLY the raw ASCII art."""
+
+    return _generate_art(prompt)
+
+
+def generate_class_art(class_name: str, description: str = "") -> Optional[str]:
+    """Generate detailed ASCII art for character classes"""
+    prompt = f"""Create a dark fantasy character portrait ASCII art for '{class_name}'.
+
+World Lore: In an age where hope became poison, darkness emerged as salvation.
+The God of Hope's invasion brought not comfort, but corruption - a twisted force
+that warps reality with false promises and maddening light. Those touched by
+this 'Curse of Hope' become enslaved to eternal, desperate optimism, their minds
+fractured by visions of impossible futures.
+
+Class Lore: Champions who've learned to weaponize shadow itself, these warriors
+bear dark sigils that protect them from hope's corruption. Each class represents
+a different approach to surviving in a world where optimism kills and despair shields.
+
+Character Description: {description}
+
+Requirements:
+1. Use ONLY these characters for facial features and details:
+   ░▒▓█▀▄╱╲╳┌┐└┘│─├┤┬┴┼╭╮╯╰◣◢◤◥╱╲╳▁▂▃▅▆▇◆♦
+2. Create EXACTLY 15 lines of art
+3. Each line must be EXACTLY 30 characters
+4. Focus on DARK CHAMPION features:
+   - Stern, determined facial expression
+   - Dark armor with shadow essence
+   - Anti-hope runes and wards
+   - Class-specific weapons/items
+   - Signs of resistance against hope
+
+Example format:
+╔════════════════════════════════╗
+║      ▄▄███████████▄▄           ║
+║    ▄█▀▀░░░░░░░░░▀▀█▄           ║
+║   ██░▒▓████████▓▒░██           ║
+║  ██░▓█▀╔══╗╔══╗▀█▓░██          ║
+║  █▓▒█╔══║██║══╗█▒▓█            ║
+║  █▓▒█║◆═╚══╝═◆║█▒▓█            ║
+║  ██▓█╚════════╝█▓██            ║
+║   ███▀▀══════▀▀███             ║
+║  ██╱▓▓▓██████▓▓▓╲██            ║
+║ ██▌║▓▓▓▓▀██▀▓▓▓▓║▐██           ║
+║ ██▌║▓▓▓▓░██░▓▓▓▓║▐██           ║
+║  ██╲▓▓▓▓░██░▓▓▓▓╱██            ║
+║   ███▄▄░████░▄▄███             ║
+╚════════════════════════════════╝
+
+Return ONLY the raw ASCII art."""
+
+    return _generate_art(prompt)

@@ -95,9 +95,28 @@ AI_SETTINGS = {
     "MAX_RETRIES": 3,
     "PRESENCE_PENALTY": 0.2,
     "FREQUENCY_PENALTY": 0.3,
+    "TIMEOUT": 30,
 }
 
-# AI Settings
-ENABLE_AI_CLASS_GENERATION = (
-    os.getenv("ENABLE_AI_CLASS_GENERATION", "false").lower() == "true"
-)
+# AI Generation Settings
+ENABLE_AI_CLASS_GENERATION = False  # Enable AI generation for character classes
+ENABLE_AI_ENEMY_GENERATION = True  # Enable AI generation for enemies
+ENABLE_AI_ITEM_GENERATION = True  # Enable AI generation for items
+ENABLE_AI_ART_GENERATION = True  # Master switch for all AI art generation
+
+# AI Generation Retry Settings
+MAX_GENERATION_ATTEMPTS = 3  # Maximum number of retry attempts for generation
+GENERATION_TIMEOUT = 30  # Timeout in seconds for each generation attempt
+
+# Enemy Generation Settings
+ENEMY_GENERATION = {
+    "BASE_HEALTH_RANGE": (40, 70),
+    "BASE_ATTACK_RANGE": (8, 15),
+    "BASE_DEFENSE_RANGE": (2, 6),
+    "LEVEL_SCALING": {
+        "HEALTH_PER_LEVEL": 5,
+        "ATTACK_PER_LEVEL": 2,
+        "DEFENSE_PER_LEVEL": 1,
+    },
+    "EXP_REWARD": {"BASE": 10, "MULTIPLIER": 1.0},
+}

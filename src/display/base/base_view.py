@@ -1,3 +1,4 @@
+import time
 from typing import Dict, Any
 from src.display.themes.dark_theme import SYMBOLS as sym
 from src.display.themes.dark_theme import DECORATIONS as dec
@@ -20,12 +21,13 @@ class BaseView:
         print(f"{dec['SEPARATOR']}")
 
     @staticmethod
-    def display_meditation_effects(healing: Dict[str, int]):
-        """Display rest healing effects"""
+    def display_meditation_effects(healing: int):
+        """Display meditation/rest effects"""
+        BaseView.clear_screen()
         print(f"\n{dec['TITLE']['PREFIX']}Rest{dec['TITLE']['SUFFIX']}")
         print(f"{dec['SEPARATOR']}")
-
         print("\nYou take a moment to rest...")
-        print(f"  {sym['HEALTH']} Health restored: {healing.get('health', 0)}")
-        print(f"  {sym['MANA']} Mana restored: {healing.get('mana', 0)}")
-        print("\nYou feel refreshed!")
+        print(f"  {sym['HEALTH']} Health restored: {healing}")
+        print(f"  {sym['MANA']} Mana recharged")
+        print("\nYour dark powers are refreshed...")
+        time.sleep(1.5)

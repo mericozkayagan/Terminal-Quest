@@ -43,8 +43,12 @@ class GameView(BaseView):
         print(f"  {sym['CURSOR']} 1  Explore")
         print(f"  {sym['CURSOR']} 2  Shop")
         print(f"  {sym['CURSOR']} 3  Rest")
-        print(f"  {sym['CURSOR']} 4  Equipment")
+        print(f"  {sym['CURSOR']} 4  Inventory")
         print(f"  {sym['CURSOR']} 5  Exit")
+
+        # Themed input prompt
+        print(f"\n{dec['SMALL_SEP']}")
+        print(f"{sym['RUNE']} Choose your path, dark one: ", end="")
 
     @staticmethod
     def show_dark_fate(player: Player):
@@ -80,7 +84,7 @@ class GameView(BaseView):
     @staticmethod
     def show_inventory(player: Player):
         """Display inventory with dark theme"""
-        print(f"\n{dec['TITLE']['PREFIX']}Dark Inventory{dec['TITLE']['SUFFIX']}")
+        print(f"\n{dec['TITLE']['PREFIX']}Inventory{dec['TITLE']['SUFFIX']}")
         print(f"{dec['SEPARATOR']}")
 
         # Equipment section
@@ -109,3 +113,17 @@ class GameView(BaseView):
                 print(f"    ✧ Rarity: {item.rarity.value}")
         else:
             print("  Your collection is empty...")
+
+    @staticmethod
+    def show_game_over(player: Player):
+        """Display game over screen"""
+        print(
+            f"\n{dec['TITLE']['PREFIX']} {sym['SKULL']} Dark Fate {sym['SKULL']} {dec['TITLE']['SUFFIX']}"
+        )
+        print(f"{dec['SEPARATOR']}")
+
+        print("\nYour soul has been consumed by darkness...")
+        print(f"\n{sym['MANA']} Final Level: {player.level}")
+        print(f"{sym['GOLD']} Gold Amassed: {player.inventory['Gold']}")
+        print(f"{sym['EXP']} Experience Gained: {player.exp}")
+        print("\nThe darkness claims another wanderer...")
