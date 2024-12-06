@@ -1,202 +1,189 @@
 #!/usr/bin/env python3
 
-import os
-import random
+import logging
 from dotenv import load_dotenv
-from src.services.ai_generator import generate_character_class, generate_enemy
-from src.services.combat import combat
+from src.models.items import Consumable
+from src.config.logging_config import setup_logging
+from src.services.character_creation import CharacterCreationService
+from src.services.combat import combat, handle_level_up
 from src.services.shop import Shop
-from src.utils.display import clear_screen, type_text
+from src.display.main.main_view import GameView
+from src.display.inventory.inventory_view import InventoryView
+from src.display.character.character_view import CharacterView
+from src.display.combat.combat_view import CombatView
+from src.display.shop.shop_view import ShopView
+from src.display.base.base_view import BaseView
+from src.display.common.message_view import MessageView
 from src.config.settings import GAME_BALANCE, STARTING_INVENTORY
 from src.models.character import Player, get_fallback_enemy
-from src.models.character_classes import fallback_classes
+from src.services.ai_generator import generate_enemy
+from src.display.themes.dark_theme import DECORATIONS as dec
+from src.display.themes.dark_theme import SYMBOLS as sym
+import time
 
-def generate_unique_classes(count: int = 3):
-    """Generate unique character classes with fallback system"""
-    classes = []
-    used_names = set()
-    max_attempts = 3
+# Configure logging
+logging.basicConfig(
+    level=logging.DEBUG,
+    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    filename="game.log",
+)
 
-    # Try to generate classes with API
-    for _ in range(max_attempts):
-        try:
-            char_class = generate_character_class()
-            if char_class and char_class.name not in used_names:
-                print(f"\nSuccessfully generated: {char_class.name}")
-                classes.append(char_class)
-                used_names.add(char_class.name)
-                if len(classes) >= count:
-                    return classes
-        except Exception as e:
-            print(f"\nAttempt failed: {e}")
-            break
+logger = logging.getLogger(__name__)
 
-    # If we don't have enough classes, use fallbacks
-    if len(classes) < count:
-        print("\nUsing fallback character classes...")
-        for c in fallback_classes:
-            if len(classes) < count and c.name not in used_names:
-                classes.append(c)
-                used_names.add(c.name)
-
-    return classes
-
-def show_stats(player: Player):
-    """Display player stats"""
-    clear_screen()
-    print(f"\n{'='*40}")
-    print(f"Name: {player.name}  |  Class: {player.char_class.name}  |  Level: {player.level}")
-    print(f"Health: {player.health}/{player.max_health}")
-    print(f"Mana: {player.mana}/{player.max_mana}")
-    print(f"Attack: {player.get_total_attack()}  |  Defense: {player.get_total_defense()}")
-    print(f"EXP: {player.exp}/{player.exp_to_level}")
-    print(f"Gold: {player.inventory['Gold']}")
-
-    # Show equipment
-    print("\nEquipment:")
-    for slot, item in player.equipment.items():
-        if item:
-            print(f"{slot.title()}: {item.name}")
-        else:
-            print(f"{slot.title()}: None")
-
-    # Show inventory
-    print("\nInventory:")
-    for item in player.inventory['items']:
-        print(f"- {item.name}")
-    print(f"{'='*40}\n")
 
 def main():
-    # Load environment variables
+    """Main game loop"""
+    setup_logging()
     load_dotenv()
 
-    clear_screen()
-    type_text("Welcome to Terminal Quest! 🗡️", 0.05)
-    player_name = input("\nEnter your hero's name: ")
+    # Initialize views
+    game_view = GameView()
+    inventory_view = InventoryView()
+    character_view = CharacterView()
+    combat_view = CombatView()
+    shop_view = ShopView()
+    base_view = BaseView()
 
-    # Generate or get character classes
-    print("\nGenerating character classes...")
-    classes = generate_unique_classes(3)
+    # Character creation
+    character_view.show_character_creation()
+    player_name = input().strip()
 
-    # Character selection
-    print("\nChoose your class:")
-    for i, char_class in enumerate(classes, 1):
-        print(f"\n{i}. {char_class.name}")
-        print(f"   {char_class.description}")
-        print(f"   Health: {char_class.base_health} | Attack: {char_class.base_attack} | Defense: {char_class.base_defense} | Mana: {char_class.base_mana}")
-        print("\n   Skills:")
-        for skill in char_class.skills:
-            print(f"   - {skill.name}: {skill.description} (Damage: {skill.damage}, Mana: {skill.mana_cost})")
+    # Use character creation service
+    try:
+        player = CharacterCreationService.create_character(player_name)
+        if not player:
+            MessageView.show_error("Character creation failed: Invalid name provided")
+            return
+    except ValueError as e:
+        MessageView.show_error(f"Character creation failed: {str(e)}")
+        return
+    except Exception as e:
+        MessageView.show_error("An unexpected error occurred during character creation")
+        return
 
-    # Class selection input
-    while True:
-        try:
-            choice = int(input("\nYour choice (1-3): ")) - 1
-            if 0 <= choice < len(classes):
-                player = Player(player_name, classes[choice])
-                break
-        except ValueError:
-            pass
-        print("Invalid choice, please try again.")
+    # Initialize inventory
+    for item_name, quantity in STARTING_INVENTORY.items():
+        player.inventory[item_name] = quantity
 
     # Initialize shop
     shop = Shop()
 
+    base_view.clear_screen()
+
     # Main game loop
     while player.health > 0:
-        show_stats(player)
-        print("\nWhat would you like to do?")
-        print("1. Fight an Enemy")
-        print("2. Visit Shop")
-        print("3. Rest (Heal 20 HP and 15 MP)")
-        print("4. Manage Equipment")
-        print("5. Quit Game")
+        BaseView.clear_screen()
+        game_view.show_main_status(player)
 
-        choice = input("\nYour choice (1-5): ")
+        choice = input().strip()
 
-        if choice == "1":
-            enemy = generate_enemy() or get_fallback_enemy()
-            combat(player, enemy)
-            input("\nPress Enter to continue...")
+        if choice == "1":  # Explore
+            try:
+                # Generate enemy with proper level scaling
+                enemy = generate_enemy(player.level)
+                if not enemy:
+                    enemy = get_fallback_enemy(player.level)
+
+                if enemy:
+                    combat_result = combat(player, enemy, combat_view)
+                    if combat_result is None:  # Player died
+                        MessageView.show_error("You have fallen in battle...")
+                        time.sleep(2)
+                        game_view.show_game_over(player)
+                        break
+                    elif combat_result:  # Victory
+                        exp_gained = enemy.exp_reward
+                        player.exp += exp_gained
+                        MessageView.show_success(
+                            f"Victory! Gained {exp_gained} experience!"
+                        )
+                        time.sleep(5)
+
+                        if player.exp >= player.exp_to_level:
+                            handle_level_up(player)
+                    else:  # Retreat
+                        MessageView.show_info("You retreat from battle...")
+                        time.sleep(2)
+
+            except Exception as e:
+                logger.error(f"Error during exploration: {str(e)}")
+                MessageView.show_error("Failed to generate encounter")
+                continue
 
         elif choice == "2":
-            shop.show_inventory(player)
             while True:
-                print("\n1. Buy Item")
-                print("2. Sell Item")
-                print("3. Leave Shop")
-                shop_choice = input("\nYour choice (1-3): ")
+                base_view.clear_screen()
+                shop_view.show_shop_menu(shop, player)
+                shop_choice = input().strip()
 
                 if shop_choice == "1":
                     try:
                         item_index = int(input("Enter item number to buy: ")) - 1
                         shop.buy_item(player, item_index)
                     except ValueError:
-                        print("Invalid choice!")
+                        MessageView.show_error("Invalid choice!")
                 elif shop_choice == "2":
-                    if not player.inventory['items']:
-                        type_text("\nNo items to sell!")
-                        continue
-                    print("\nYour items:")
-                    for i, item in enumerate(player.inventory['items'], 1):
-                        print(f"{i}. {item.name} - Worth: {int(item.value * GAME_BALANCE['SELL_PRICE_MULTIPLIER'])} Gold")
+                    inventory_view.show_inventory(player)
                     try:
                         item_index = int(input("Enter item number to sell: ")) - 1
-                        shop.sell_item(player, item_index)
+                        if item_index >= 0:
+                            shop.sell_item(player, item_index)
                     except ValueError:
-                        print("Invalid choice!")
+                        MessageView.show_error("Invalid choice!")
                 elif shop_choice == "3":
                     break
 
         elif choice == "3":
-            healed = False
-            if player.health < player.max_health:
-                player.health = min(player.max_health, player.health + 20)
-                healed = True
-            if player.mana < player.max_mana:
-                player.mana = min(player.max_mana, player.mana + 15)
-                healed = True
-
-            if healed:
-                type_text("You rest and recover some health and mana...")
-            else:
-                type_text("You are already at full health and mana!")
+            healing = player.rest()
+            base_view.display_meditation_effects(healing)
 
         elif choice == "4":
-            # Equipment management
-            if not player.inventory['items']:
-                type_text("\nNo items to equip!")
-                continue
+            while True:
+                inventory_view.show_inventory(player)
+                print(f"\n{dec['SECTION']['START']}Actions{dec['SECTION']['END']}")
+                print(f"  {sym['CURSOR']} 1. Manage Equipment")
+                print(f"  {sym['CURSOR']} 2. Use Item")
+                print(f"  {sym['CURSOR']} 3. Back")
 
-            print("\nYour items:")
-            equippable_items = [item for item in player.inventory['items'] if hasattr(item, 'equip')]
-            if not equippable_items:
-                type_text("\nNo equipment items found!")
-                continue
+                inv_choice = input("\nChoose action: ").strip()
+                BaseView.clear_screen()
 
-            for i, item in enumerate(equippable_items, 1):
-                print(f"{i}. {item.name} ({item.item_type.value})")
-
-            try:
-                item_index = int(input("\nChoose item to equip (0 to cancel): ")) - 1
-                if 0 <= item_index < len(equippable_items):
-                    item = equippable_items[item_index]
-                    old_item = player.equip_item(item, item.item_type.value)
-                    player.inventory['items'].remove(item)
-                    if old_item:
-                        player.inventory['items'].append(old_item)
-                    type_text(f"\nEquipped {item.name}!")
-            except ValueError:
-                print("Invalid choice!")
+                if inv_choice == "1":
+                    inventory_view.show_equipment_management(player)
+                elif inv_choice == "2":
+                    # Show usable items
+                    usable_items = [
+                        (i, item)
+                        for i, item in enumerate(player.inventory["items"], 1)
+                        if isinstance(item, Consumable)
+                    ]
+                    if usable_items:
+                        print("\nUsable Items:")
+                        for i, (_, item) in enumerate(usable_items, 1):
+                            print(f"  {sym['CURSOR']} {i}. {item.name}")
+                        try:
+                            item_choice = (
+                                int(input("\nChoose item to use (0 to cancel): ")) - 1
+                            )
+                            if 0 <= item_choice < len(usable_items):
+                                idx, item = usable_items[item_choice]
+                                if item.use(player):
+                                    player.inventory["items"].pop(idx - 1)
+                                    MessageView.show_success(f"Used {item.name}")
+                        except ValueError:
+                            MessageView.show_error("Invalid choice!")
+                    else:
+                        MessageView.show_info("No usable items in inventory!")
+                elif inv_choice == "3":
+                    break
 
         elif choice == "5":
-            type_text("\nThanks for playing Terminal Quest! Goodbye! 👋")
+            MessageView.show_info("\nThank you for playing! See you next time...")
             break
 
     if player.health <= 0:
-        type_text("\nGame Over! Your hero has fallen in battle... 💀")
-        type_text(f"Final Level: {player.level}")
-        type_text(f"Gold Collected: {player.inventory['Gold']}")
+        game_view.show_game_over(player)
+
 
 if __name__ == "__main__":
     main()
