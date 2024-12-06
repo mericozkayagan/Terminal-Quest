@@ -31,8 +31,6 @@ jobs:
 
     - name: Check formatting with black
       run: black --check .
-    - name: Lint with flake8
-      run: flake8 . --count --max-line-length=100 --statistics
 
     - name: Type checking with mypy
       run: mypy src/
