@@ -1,12 +1,14 @@
-from typing import List
-from src.models.items import Consumable
+from typing import List, Optional
+from src.config.settings import DISPLAY_SETTINGS
+from src.models.items.consumable import Consumable
 from src.display.base.base_view import BaseView
 from src.display.themes.dark_theme import SYMBOLS as sym
 from src.display.themes.dark_theme import DECORATIONS as dec
 from src.models.character import Player, Enemy, Character
 import random
-from src.utils.ascii_art import load_ascii_art
 import time
+from src.models.effects.base import BaseEffect
+from src.models.base_types import EffectTrigger
 
 
 class CombatView(BaseView):
@@ -77,31 +79,36 @@ class CombatView(BaseView):
 
         for i, skill in enumerate(player.skills, 1):
             rune = random.choice(dec["RUNES"])
-            print(f"\n  {rune} {i}. {skill.name}")
+            status = (
+                "Ready"
+                if skill.is_available()
+                else f"Cooldown: {skill.current_cooldown}"
+            )
+            print(f"\n  {rune} {i}. {skill.name} [{status}]")
             print(f"    {sym['ATTACK']} Power: {skill.damage}")
             print(f"    {sym['MANA']} Cost: {skill.mana_cost}")
             print(f"    {sym['RUNE']} {skill.description}")
 
     @staticmethod
     def show_battle_result(player: Player, enemy: Enemy, rewards: dict):
-        """Display battle results with dark theme"""
-        print(f"\n{dec['TITLE']['PREFIX']}Battle Aftermath{dec['TITLE']['SUFFIX']}")
+        """Display battle results with a simple dark RPG theme"""
+        print(f"\n{dec['TITLE']['PREFIX']}Battle Results{dec['TITLE']['SUFFIX']}")
         print(f"{dec['SEPARATOR']}")
 
-        print("\n  The enemy's essence fades...")
-        print(f"  {sym['SKULL']} {enemy.name} has fallen")
+        print("\n  The enemy is defeated.")
+        print(f"  {sym['SKULL']} {enemy.name} has fallen.")
 
-        print(f"\n{dec['SECTION']['START']}Dark Rewards{dec['SECTION']['END']}")
-        print(f"  {sym['EXP']} Soul Essence: +{rewards.get('exp', 0)}")
-        print(f"  {sym['GOLD']} Dark Tokens: +{rewards.get('gold', 0)}")
+        print(f"\n{dec['SECTION']['START']}Rewards{dec['SECTION']['END']}")
+        print(f"  {sym['EXP']} Experience: +{rewards.get('exp', 0)}")
+        print(f"  {sym['GOLD']} Gold: +{rewards.get('gold', 0)}")
 
         if rewards.get("items"):
-            print(
-                f"\n{dec['SECTION']['START']}Claimed Artifacts{dec['SECTION']['END']}"
-            )
+            print(f"\n{dec['SECTION']['START']}Items Collected{dec['SECTION']['END']}")
             for item in rewards["items"]:
                 rune = random.choice(dec["RUNES"])
                 print(f"  {rune} {item.name} ({item.rarity.value})")
+
+        time.sleep(2)
 
     @staticmethod
     def show_level_up(player: Player):
@@ -114,6 +121,7 @@ class CombatView(BaseView):
         print(f"  {sym['MANA']} Mana increased")
         print(f"  {sym['ATTACK']} Attack improved")
         print(f"  {sym['DEFENSE']} Defense improved")
+        time.sleep(2)
 
     @staticmethod
     def show_status_effect(character: Character, effect_name: str, damage: int = 0):
@@ -129,6 +137,7 @@ class CombatView(BaseView):
         print(f"\n{dec['TITLE']['PREFIX']}Combat Items{dec['TITLE']['SUFFIX']}")
         print(f"{dec['SEPARATOR']}")
 
+        # Filter for consumable items
         usable_items = [
             (i, item)
             for i, item in enumerate(player.inventory["items"], 1)
@@ -136,15 +145,14 @@ class CombatView(BaseView):
         ]
 
         if usable_items:
-            print(f"\n{dec['SECTION']['START']}Available Items{dec['SECTION']['END']}")
             for i, (_, item) in enumerate(usable_items, 1):
                 rune = random.choice(dec["RUNES"])
-                print(f"\n  {rune} {i}. {item.name}")
-                print(f"    {sym['RUNE']} {item.description}")
-                if hasattr(item, "healing"):
+                print(f"\n  {rune} [{i}] {item.name}")
+                if hasattr(item, "healing") and item.healing > 0:
                     print(f"    {sym['HEALTH']} Healing: {item.healing}")
-                if hasattr(item, "mana_restore"):
+                if hasattr(item, "mana_restore") and item.mana_restore > 0:
                     print(f"    {sym['MANA']} Mana: {item.mana_restore}")
+                print(f"    ✧ Rarity: {item.rarity.value}")
         else:
             print("\n  No usable items available...")
 
@@ -169,3 +177,24 @@ class CombatView(BaseView):
             print(f"  {sym['HEALTH']} You take {damage_taken} damage")
 
         time.sleep(2)  # Give time to read the message
+
+    @staticmethod
+    def show_effect_trigger(
+        effect: BaseEffect, source: "Character", target: Optional["Character"] = None
+    ):
+        """Display effect activation during combat"""
+        effect_symbol = {
+            EffectTrigger.ON_HIT: sym["ATTACK"],
+            EffectTrigger.ON_HIT_TAKEN: sym["DEFENSE"],
+            EffectTrigger.ON_TURN_START: sym["TIME"],
+            EffectTrigger.ON_TURN_END: sym["TIME"],
+            EffectTrigger.ON_KILL: sym["SKULL"],
+            EffectTrigger.PASSIVE: sym["BUFF"],
+        }.get(effect.trigger, sym["EFFECT"])
+
+        message = f"{effect_symbol} {source.name}'s {effect.name} activates!"
+        if target:
+            message += f" on {target.name}"
+
+        print(message)
+        time.sleep(DISPLAY_SETTINGS["COMBAT_MESSAGE_DELAY"])

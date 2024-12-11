@@ -2,10 +2,10 @@
 
 import logging
 from dotenv import load_dotenv
-from src.models.items import Consumable
+from src.models.items.consumable import Consumable
 from src.config.logging_config import setup_logging
 from src.services.character_creation import CharacterCreationService
-from src.services.combat import combat, handle_level_up
+from src.services.combat import combat, handle_combat_rewards, handle_level_up
 from src.services.shop import Shop
 from src.display.main.main_view import GameView
 from src.display.inventory.inventory_view import InventoryView
@@ -19,7 +19,10 @@ from src.models.character import Player, get_fallback_enemy
 from src.services.ai_generator import generate_enemy
 from src.display.themes.dark_theme import DECORATIONS as dec
 from src.display.themes.dark_theme import SYMBOLS as sym
+from src.services.boss import BossService
+from src.display.boss.boss_view import BossView
 import time
+from src.models.base_types import EffectResult
 
 # Configure logging
 logging.basicConfig(
@@ -29,6 +32,20 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+
+def handle_effect_result(result: EffectResult) -> None:
+    """Handle the result of effect operations"""
+    if "message" in result:
+        if result.get("error"):
+            MessageView.show_error(result["message"])
+        elif result.get("success"):
+            MessageView.show_success(result["message"])
+        else:
+            MessageView.show_info(result["message"])
+
+    if "damage" in result:
+        CombatView.show_damage(result["damage"])
 
 
 def main():
@@ -43,6 +60,8 @@ def main():
     combat_view = CombatView()
     shop_view = ShopView()
     base_view = BaseView()
+    boss_view = BossView()
+    boss_service = BossService()
 
     # Character creation
     character_view.show_character_creation()
@@ -61,10 +80,6 @@ def main():
         MessageView.show_error("An unexpected error occurred during character creation")
         return
 
-    # Initialize inventory
-    for item_name, quantity in STARTING_INVENTORY.items():
-        player.inventory[item_name] = quantity
-
     # Initialize shop
     shop = Shop()
 
@@ -79,13 +94,46 @@ def main():
 
         if choice == "1":  # Explore
             try:
+                # Check for boss encounter first
+                boss = boss_service.check_boss_encounter(player)
+                if boss:
+                    boss_view.show_boss_encounter(boss)
+                    combat_result = combat(player, boss, combat_view, shop)
+
+                    if combat_result is False:  # Player died
+                        MessageView.show_info("You have fallen to a mighty foe...")
+                        time.sleep(2)
+                        game_view.show_game_over(player)
+                        break
+                    elif combat_result:  # Victory
+                        exp_gained = int(
+                            boss.level * GAME_BALANCE["exp_multiplier"] * 2
+                        )
+                        player.exp += exp_gained
+                        MessageView.show_success(
+                            f"A mighty victory! Gained {exp_gained} experience!"
+                        )
+
+                        # Handle boss drops
+                        for item in boss.guaranteed_drops:
+                            player.inventory["items"].append(item)
+                            MessageView.show_success(f"Obtained {item.name}!")
+
+                        if player.exp >= player.exp_to_level:
+                            handle_level_up(player)
+                        time.sleep(5)
+                    else:  # Retreat
+                        MessageView.show_info("You retreat from the powerful foe...")
+                        time.sleep(2)
+                    continue  # Skip normal enemy generation after boss encounter
+
                 # Generate enemy with proper level scaling
                 enemy = generate_enemy(player.level)
                 if not enemy:
                     enemy = get_fallback_enemy(player.level)
 
                 if enemy:
-                    combat_result = combat(player, enemy, combat_view)
+                    combat_result = combat(player, enemy, combat_view, shop)
                     if combat_result is None:  # Player died
                         MessageView.show_error("You have fallen in battle...")
                         time.sleep(2)
@@ -97,7 +145,20 @@ def main():
                         MessageView.show_success(
                             f"Victory! Gained {exp_gained} experience!"
                         )
-                        time.sleep(5)
+                        time.sleep(4)
+
+                        # Handle combat rewards
+                        gold_gained, dropped_items = handle_combat_rewards(
+                            player, enemy, shop
+                        )
+
+                        # Display rewards
+                        rewards = {
+                            "exp": exp_gained,
+                            "gold": gold_gained,
+                            "items": dropped_items,
+                        }
+                        combat_view.show_battle_result(player, enemy, rewards)
 
                         if player.exp >= player.exp_to_level:
                             handle_level_up(player)
@@ -110,28 +171,8 @@ def main():
                 MessageView.show_error("Failed to generate encounter")
                 continue
 
-        elif choice == "2":
-            while True:
-                base_view.clear_screen()
-                shop_view.show_shop_menu(shop, player)
-                shop_choice = input().strip()
-
-                if shop_choice == "1":
-                    try:
-                        item_index = int(input("Enter item number to buy: ")) - 1
-                        shop.buy_item(player, item_index)
-                    except ValueError:
-                        MessageView.show_error("Invalid choice!")
-                elif shop_choice == "2":
-                    inventory_view.show_inventory(player)
-                    try:
-                        item_index = int(input("Enter item number to sell: ")) - 1
-                        if item_index >= 0:
-                            shop.sell_item(player, item_index)
-                    except ValueError:
-                        MessageView.show_error("Invalid choice!")
-                elif shop_choice == "3":
-                    break
+        elif choice == "2":  # Shop
+            shop_view.handle_shop_interaction(shop, player)
 
         elif choice == "3":
             healing = player.rest()

@@ -70,6 +70,7 @@ class CharacterView(BaseView):
                         print(f"    {rune} {skill.name}")
                         print(f"      {sym['ATTACK']} Power: {skill.damage}")
                         print(f"      {sym['MANA']} Cost: {skill.mana_cost}")
+                        print(f"      {sym['COOLDOWN']} Cooldown: {skill.cooldown}")
                         print(
                             f"      {random.choice(dec['RUNES'])} {skill.description}"
                         )
@@ -103,3 +104,4 @@ class CharacterView(BaseView):
             print(f"    {sym['ATTACK']} Power: {skill.damage}")
             print(f"    {sym['MANA']} Cost: {skill.mana_cost}")
             print(f"    {sym['RUNE']} {skill.description}")
+            print(f"    {sym['COOLDOWN']} Cooldown: {skill.cooldown}")

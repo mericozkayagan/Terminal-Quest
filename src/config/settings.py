@@ -1,8 +1,4 @@
 from typing import Dict, Tuple
-import os
-from dotenv import load_dotenv
-
-load_dotenv()
 
 # Game version
 VERSION = "1.0.0"
@@ -19,6 +15,7 @@ GAME_BALANCE = {
     # Combat settings
     "RUN_CHANCE": 0.4,
     "DAMAGE_RANDOMNESS_RANGE": (-3, 3),
+    "GOLD_PER_LEVEL": 30,
     # Shop settings
     "SELL_PRICE_MULTIPLIER": 0.5,  # Items sell for half their buy price
 }
@@ -39,10 +36,11 @@ STAT_RANGES: Dict[str, Tuple[int, int]] = {
     # Skill stat ranges
     "SKILL_DAMAGE": (15, 30),
     "SKILL_MANA_COST": (10, 25),
+    "SKILL_COOLDOWN": (1, 5),  # Example range for skill cooldowns
 }
 
 # Starting inventory
-STARTING_INVENTORY = {"Health Potion": 2, "Mana Potion": 2, "Gold": 0, "items": []}
+STARTING_INVENTORY = {"Gold": 100, "items": []}
 
 # Item settings
 ITEM_SETTINGS = {
@@ -119,4 +117,43 @@ ENEMY_GENERATION = {
         "DEFENSE_PER_LEVEL": 1,
     },
     "EXP_REWARD": {"BASE": 10, "MULTIPLIER": 1.0},
+}
+
+# Shop settings
+SHOP_SETTINGS = {
+    "ITEM_APPEARANCE_CHANCE": 0.3,
+    "SELL_MULTIPLIER": 0.5,
+    "REFRESH_COST": 100,
+    "POST_COMBAT_EQUIPMENT_COUNT": 4,
+    "SPECIAL_EVENT_CHANCE": 0.2,
+    "SHOP_TYPE_WEIGHTS": {
+        "GENERAL": 0.4,
+        "BLACKSMITH": 0.3,
+        "ALCHEMIST": 0.2,
+        "MYSTIC": 0.1,
+    },
+    "SHOP_TYPE_BONUSES": {
+        "BLACKSMITH": {"weapon": 1.2, "armor": 1.2},
+        "ALCHEMIST": {"consumable": 0.8, "potion_stock": 3},
+        "MYSTIC": {"set_piece_chance": 1.5},
+    },
+    "BASE_POTION_STOCK": {
+        "GENERAL": 1,
+        "ALCHEMIST": 3,
+        "MYSTIC": 1,
+        "BLACKSMITH": 1,
+    },
+    "RARITY_WEIGHTS": {
+        "COMMON": 0.40,
+        "UNCOMMON": 0.30,
+        "RARE": 0.20,
+        "EPIC": 0.08,
+        "LEGENDARY": 0.02,
+    },
+    "SET_PIECE_CHANCE": 0.15,
+    "LEVEL_SCALING": {
+        "RARITY_BOOST": 0.02,  # Per player level
+        "LEGENDARY_MIN_LEVEL": 20,
+        "EPIC_MIN_LEVEL": 15,
+    },
 }

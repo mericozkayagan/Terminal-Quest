@@ -158,7 +158,7 @@ Requirements:
    - Material composition
 
 Example format:
-╔════════════════╗
+╔═══════��════════╗
 ║  ▄▄████████▄   ║
 ║ █▓░◆═══◆░▓█   ║
 ║ ██╲▓▓██▓▓╱██  ║
@@ -174,21 +174,12 @@ def generate_class_art(class_name: str, description: str = "") -> Optional[str]:
     """Generate detailed ASCII art for character classes"""
     prompt = f"""Create a dark fantasy character portrait ASCII art for '{class_name}'.
 
-World Lore: In an age where hope became poison, darkness emerged as salvation.
-The God of Hope's invasion brought not comfort, but corruption - a twisted force
-that warps reality with false promises and maddening light. Those touched by
-this 'Curse of Hope' become enslaved to eternal, desperate optimism, their minds
-fractured by visions of impossible futures.
-
-Class Lore: Champions who've learned to weaponize shadow itself, these warriors
-bear dark sigils that protect them from hope's corruption. Each class represents
-a different approach to surviving in a world where optimism kills and despair shields.
-
+World Lore: {LORE['world']}
+Class Lore: {LORE['class']}
 Character Description: {description}
 
 Requirements:
-1. Use ONLY these characters for facial features and details:
-   ░▒▓█▀▄╱╲╳┌┐└┘│─├┤┬┴┼╭╮╯╰◣◢◤◥╱╲╳▁▂▃▅▆▇◆♦
+1. Use ONLY these characters: {ArtGenerationConfig.characters}
 2. Create EXACTLY 15 lines of art
 3. Each line must be EXACTLY 30 characters
 4. Focus on DARK CHAMPION features:
