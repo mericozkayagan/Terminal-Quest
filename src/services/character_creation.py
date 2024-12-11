@@ -4,16 +4,13 @@ from typing import List, Optional
 from src.models.skills import Skill
 
 from .ai_generator import generate_character_class
-from .art_generator import generate_class_art
 from src.display.base.base_view import BaseView
 from src.config.settings import ENABLE_AI_CLASS_GENERATION
 from src.models.character import Player
 from src.models.character_classes import get_default_classes, CharacterClass
 from src.display.ai.ai_view import AIView
 from src.display.character.character_view import CharacterView
-from src.display.themes.dark_theme import DECORATIONS as dec
 from src.utils.ascii_art import ensure_entity_art, load_ascii_art
-import random
 
 logger = logging.getLogger(__name__)
 
@@ -41,8 +38,10 @@ class CharacterCreationService:
             if not chosen_class:
                 return None
 
-            # Create and return player
-            return Player(name=name, char_class=chosen_class)
+            # Create player
+            player = Player(name=name, char_class=chosen_class)
+
+            return player
 
         except Exception as e:
             import traceback

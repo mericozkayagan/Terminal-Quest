@@ -15,11 +15,25 @@ SYMBOLS = {
     "EQUIPMENT": "⚔",  # Equipment
     "CURSOR": "➤",  # Selection arrow
     "RUNE": "ᛟ",  # Magical rune
+    "INFO": "✧",
     "SKULL": "☠",  # Death
     "POTION": "⚱",  # Potion vial
     "CURSE": "⚉",  # Curse symbol
     "SOUL": "❂",  # Soul essence
     "SKILL": "✤",  # Add this line
+    "EFFECT": "✧",
+    "SET": "◈",
+    "STATS": "⚔",
+    "BUFF": "↑",
+    "TIME": "⌛",
+    "TITLE": "◆",
+    "LEVEL": "◊",
+    "CORRUPTION": "◈",
+    "VOID": "▓",
+    "HOPE": "░",
+    "TAINT": "▒",
+    "COOLDOWN": "⌛",
+    "DAMAGE": "✖",  # Damage symbol
 }
 
 DECORATIONS = {
@@ -29,6 +43,13 @@ DECORATIONS = {
     "SEPARATOR": "✧──────────────────────✧",
     "SMALL_SEP": "• • •",
     "RUNES": ["ᚱ", "ᚨ", "ᚷ", "ᚹ", "ᛟ", "ᚻ", "ᚾ", "ᛉ", "ᛋ"],
+    "BOSS_ALERT": {
+        "START": "╔═══════════ CORRUPTION MANIFESTS ═══════════╗\n║",
+        "END": "║\n╚════════════════════════════════════════════╝",
+    },
+    "WARNING": {"START": "▓▒░", "END": "░▒▓"},
+    "BOSS_FRAME": {"START": "╔═══╗", "END": "╚═══╝"},
+    "CORRUPTION": {"START": "◈━━━", "END": "━━━◈"},
 }
 
 # Display formatting

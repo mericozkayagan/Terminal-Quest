@@ -5,12 +5,9 @@ from ..models.character import Enemy
 from ..config.settings import STAT_RANGES
 from .ai_core import generate_content
 from .art_generator import generate_class_art, generate_enemy_art
-from src.utils.ascii_art import save_ascii_art, load_ascii_art
-from src.utils.json_cleaner import JSONCleaner
 import json
 import random
 import logging
-import os
 
 # Define fallback classes
 FALLBACK_CLASSES = [
@@ -71,12 +68,14 @@ CRITICAL JSON RULES:
                 "name": "example: Primary Skill",
                 "damage": f"pick ONE number between {STAT_RANGES['SKILL_DAMAGE'][0]} and {STAT_RANGES['SKILL_DAMAGE'][1]}",
                 "mana_cost": f"pick ONE number between {STAT_RANGES['SKILL_MANA_COST'][0]} and {STAT_RANGES['SKILL_MANA_COST'][1]}",
+                "cooldown": f"pick ONE number between {STAT_RANGES['SKILL_COOLDOWN'][0]} and {STAT_RANGES['SKILL_COOLDOWN'][1]}",
                 "description": "example: Primary attack description",
             },
             {
                 "name": "example: Secondary Skill",
                 "damage": f"pick ONE number between {STAT_RANGES['SKILL_DAMAGE'][0]} and {STAT_RANGES['SKILL_DAMAGE'][1]}",
                 "mana_cost": f"pick ONE number between {STAT_RANGES['SKILL_MANA_COST'][0]} and {STAT_RANGES['SKILL_MANA_COST'][1]}",
+                "cooldown": f"pick ONE number between {STAT_RANGES['SKILL_COOLDOWN'][0]} and {STAT_RANGES['SKILL_COOLDOWN'][1]}",
                 "description": "example: Secondary attack description",
             },
         ],
@@ -147,6 +146,7 @@ Guidelines:
 - Can be ancient beings awakened and corrupted
 - Stats must be balanced for player combat
 - Description should reflect their corruption by hope
+- Enemy stats should scale with player level, creating stronger enemies at higher levels
 
 STRICT JSON RULES:
 - Return ONLY valid JSON matching the EXACT structure below
@@ -164,8 +164,7 @@ Required JSON structure:
     "health": "integer between 30-100",
     "attack": "integer between 8-25",
     "defense": "integer between 2-10",
-    "exp_reward": "integer between 20-100",
-    "gold_reward": "integer between 10-50"
+    "exp_reward": "integer between 20-100"
 }"""
 
         content = generate_content(data_prompt)
@@ -182,7 +181,8 @@ Required JSON structure:
             health=int(data["health"]),
             attack=int(data["attack"]),
             defense=int(data["defense"]),
-            level=player_level,
+            level=int(data["level"]),
+            exp_reward=int(data["exp_reward"]),
             art=None,  # We'll set this later if art generation succeeds
         )
 
