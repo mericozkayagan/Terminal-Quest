@@ -2,18 +2,18 @@ import psycopg2
 import jwt
 import time
 from typing import Optional
-from src.config.settings import AUTH_SETTINGS, DB_SETTINGS
+from src.config.settings import AUTH_SETTINGS, DATABASE_SETTINGS
 from src.models.character import Player
 from src.display.common.message_view import MessageView
 
 class SessionManagementService:
     def __init__(self):
         self.conn = psycopg2.connect(
-            dbname=DB_SETTINGS["DB_NAME"],
-            user=DB_SETTINGS["DB_USER"],
-            password=DB_SETTINGS["DB_PASSWORD"],
-            host=DB_SETTINGS["DB_HOST"],
-            port=DB_SETTINGS["DB_PORT"]
+            dbname=DATABASE_SETTINGS["DB_NAME"],
+            user=DATABASE_SETTINGS["DB_USER"],
+            password=DATABASE_SETTINGS["DB_PASSWORD"],
+            host=DATABASE_SETTINGS["DB_HOST"],
+            port=DATABASE_SETTINGS["DB_PORT"]
         )
         self.jwt_secret_key = AUTH_SETTINGS["JWT_SECRET_KEY"]
         self.jwt_algorithm = AUTH_SETTINGS["JWT_ALGORITHM"]
@@ -24,7 +24,7 @@ class SessionManagementService:
         cursor = self.conn.cursor()
         cursor.execute(
             "INSERT INTO sessions (session_id, player_data, expiration) VALUES (%s, %s, %s)",
-            (session_id, player.serialize(), time.time() + self.session_timeout)
+            (session_id, jwt.encode(player.serialize(), self.jwt_secret_key, algorithm=self.jwt_algorithm), time.time() + self.session_timeout)
         )
         self.conn.commit()
         cursor.close()

@@ -208,15 +208,14 @@ def combat(
                     combat_view.show_retreat_attempt(success=True)
                     return False
                 else:
-                    enemy = random.choice(enemy_queue)
-                    enemy_damage = enemy.attack + random.randint(1, 3)
+                    enemy_damage = random.choice(enemy_queue).attack + random.randint(1, 3)
                     player.health -= enemy_damage
                     combat_view.show_retreat_attempt(
-                        success=False, damage_taken=enemy_damage, enemy_name=enemy.name
+                        success=False, damage_taken=enemy_damage, enemy_name=random.choice(enemy_queue).name
                     )
                     combat_log.insert(
                         0,
-                        f"Failed to escape! {enemy.name} hits {player.name} for {enemy_damage} damage!",
+                        f"Failed to escape! {random.choice(enemy_queue).name} hits {player.name} for {enemy_damage} damage!",
                     )
 
             if player.health <= 0:
