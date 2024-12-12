@@ -11,6 +11,7 @@ from src.models.character_classes import get_default_classes, CharacterClass
 from src.display.ai.ai_view import AIView
 from src.display.character.character_view import CharacterView
 from src.utils.ascii_art import ensure_entity_art, load_ascii_art
+from src.services.session_management import SessionManagementService
 
 logger = logging.getLogger(__name__)
 
@@ -145,3 +146,11 @@ class CharacterCreationService:
             if art_file:
                 art_content = load_ascii_art(art_file)
                 setattr(char_class, "art", art_content)
+
+    @staticmethod
+    def authenticate_player() -> Optional[Player]:
+        """Authenticate player during character creation"""
+        session_service = SessionManagementService()
+        session_service.show_login_screen()
+        player = session_service.authenticate_player()
+        return player

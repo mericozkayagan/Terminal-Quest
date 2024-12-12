@@ -157,3 +157,22 @@ SHOP_SETTINGS = {
         "EPIC_MIN_LEVEL": 15,
     },
 }
+
+# Database configuration settings for PostgreSQL
+DATABASE_SETTINGS = {
+    "DB_NAME": "rpg_game",
+    "DB_USER": "rpg_user",
+    "DB_PASSWORD": "secure_password",
+    "DB_HOST": "localhost",
+    "DB_PORT": 5432,
+}
+
+# Authentication and session management settings
+AUTH_SETTINGS = {
+    "SESSION_TIMEOUT": 3600,  # Session timeout in seconds
+    "JWT_SECRET_KEY": "your_secret_key",
+    "JWT_ALGORITHM": "HS256",
+    "REDIS_HOST": "localhost",
+    "REDIS_PORT": 6379,
+    "REDIS_DB": 0,
+}
