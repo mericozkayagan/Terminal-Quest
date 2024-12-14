@@ -53,32 +53,61 @@ A sophisticated text-based RPG that leverages AI to generate unique content, fea
 - Inventory system with consumables and equipment
 - Gold-based economy with configurable sell prices
 
+### Multiplayer Support
+- Turn-based combat with player queue
+- Multiple players and enemies in combat
+- Real-time communication using WebSockets
+- Player authentication and session management
+- Game state saving and loading
+
 ## Installation
 
 ### Prerequisites
 - Python 3.12+
 - OpenAI API key (for AI-generated content)
+- PostgreSQL (for game state and session management)
 
 ### Setup
 1. Clone the repository:
-```bash
-git clone https://github.com/yourusername/terminal-quest.git
-cd terminal-quest
-```
+   ```bash
+   git clone https://github.com/yourusername/terminal-quest.git
+   cd terminal-quest
+   ```
+
 2. Install dependencies:
-```bash
-pip3 install -r requirements.txt
-```
+   ```bash
+   pip3 install -r requirements.txt
+   ```
 
 3. Create a `.env` file:
-```env
-OPENAI_API_KEY=your_key_here
-```
+   ```env
+   OPENAI_API_KEY=your_key_here
+   DATABASE_URL=your_postgresql_database_url
+   ```
 
-4. Run the game:
-```bash
-python3 main.py
-```
+4. Set up the PostgreSQL database:
+   - Ensure PostgreSQL is running.
+   - Create the necessary database and tables using the provided SQL scripts or migrations.
+
+5. Run the server:
+   ```bash
+   python src/services/server.py
+   ```
+
+6. Run the client:
+   ```bash
+   python client/client.py
+   ```
+
+## Running the Game on a Server
+
+To run the game on a server and allow players to connect from their machines, follow these steps:
+
+1. Set up an AWS EC2 instance or any other cloud server.
+2. Install the necessary dependencies on the server.
+3. Configure the server to run the game as a service.
+4. Use a WebSocket server to handle real-time communication between the server and clients.
+5. Players can connect to the server using a client application that communicates with the server via WebSockets.
 
 ## Project Structure
 

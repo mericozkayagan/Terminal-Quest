@@ -15,31 +15,34 @@ class CombatView(BaseView):
     """Handles all combat-related display logic"""
 
     @staticmethod
-    def show_combat_status(player: Player, enemy: Enemy, combat_log: List[str]):
+    def show_combat_status(
+        players: List[Player], enemies: List[Enemy], combat_log: List[str]
+    ):
         """Display combat status with improved visual flow"""
         print(f"\n{dec['TITLE']['PREFIX']}Combat{dec['TITLE']['SUFFIX']}")
         print(f"{dec['SEPARATOR']}")
 
         # Enemy section
-        print(f"\n{dec['SECTION']['START']}Enemy{dec['SECTION']['END']}")
-        print(f"  {sym['SKULL']} {enemy.name}\n")
+        print(f"\n{dec['SECTION']['START']}Enemies{dec['SECTION']['END']}")
+        for enemy in enemies:
+            print(f"  {sym['SKULL']} {enemy.name}\n")
 
-        # Show enemy art if available
-        if hasattr(enemy, "art") and enemy.art:
-            print(enemy.art)
-        else:
-            # Display default art or placeholder
-            print("     ╔════════╗")
-            print("     ║  (??)  ║")
-            print("     ║  (||)  ║")
-            print("     ╚════════╝")
+            # Show enemy art if available
+            if hasattr(enemy, "art") and enemy.art:
+                print(enemy.art)
+            else:
+                # Display default art or placeholder
+                print("     ╔════════╗")
+                print("     ║  (??)  ║")
+                print("     ║  (||)  ║")
+                print("     ╚════════╝")
 
-        # Enemy health bar
-        health_percent = enemy.health / enemy.max_health
-        health_bar = "█" * int(health_percent * 20)
-        health_bar = health_bar.ljust(20, "░")
-        print(f"\n  {sym['HEALTH']} Health: {enemy.health}/{enemy.max_health}")
-        print(f"  [{health_bar}]")
+            # Enemy health bar
+            health_percent = enemy.health / enemy.max_health
+            health_bar = "█" * int(health_percent * 20)
+            health_bar = health_bar.ljust(20, "░")
+            print(f"\n  {sym['HEALTH']} Health: {enemy.health}/{enemy.max_health}")
+            print(f"  [{health_bar}]")
 
         # Combat log section
         if combat_log:
@@ -48,21 +51,21 @@ class CombatView(BaseView):
                 print(f"  {message}")
 
         # Player status
-        print(f"\n{dec['SECTION']['START']}Status{dec['SECTION']['END']}")
+        print(f"\n{dec['SECTION']['START']}Players{dec['SECTION']['END']}")
+        for player in players:
+            # Player health bar
+            player_health_percent = player.health / player.max_health
+            player_health_bar = "█" * int(player_health_percent * 20)
+            player_health_bar = player_health_bar.ljust(20, "░")
+            print(f"  {sym['HEALTH']} Health: {player.health}/{player.max_health}")
+            print(f"  [{player_health_bar}]")
 
-        # Player health bar
-        player_health_percent = player.health / player.max_health
-        player_health_bar = "█" * int(player_health_percent * 20)
-        player_health_bar = player_health_bar.ljust(20, "░")
-        print(f"  {sym['HEALTH']} Health: {player.health}/{player.max_health}")
-        print(f"  [{player_health_bar}]")
-
-        # Player mana bar
-        mana_percent = player.mana / player.max_mana
-        mana_bar = "█" * int(mana_percent * 20)
-        mana_bar = mana_bar.ljust(20, "░")
-        print(f"  {sym['MANA']} Mana:   {player.mana}/{player.max_mana}")
-        print(f"  [{mana_bar}]")
+            # Player mana bar
+            mana_percent = player.mana / player.max_mana
+            mana_bar = "█" * int(mana_percent * 20)
+            mana_bar = mana_bar.ljust(20, "░")
+            print(f"  {sym['MANA']} Mana:   {player.mana}/{player.max_mana}")
+            print(f"  [{mana_bar}]")
 
         # Actions
         print(f"\n{dec['SECTION']['START']}Actions{dec['SECTION']['END']}")

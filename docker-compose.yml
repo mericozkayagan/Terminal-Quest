@@ -1,0 +1,17 @@
+version: '3.8'
+
+services:
+  db:
+    image: postgres:latest
+    container_name: rpg_game_db
+    environment:
+      POSTGRES_DB: rpg_game
+      POSTGRES_USER: rpg_user
+      POSTGRES_PASSWORD: secure_password
+    ports:
+      - "5432:5432"
+    volumes:
+      - db_data:/var/lib/postgresql/data
+
+volumes:
+  db_data:

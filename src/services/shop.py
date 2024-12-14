@@ -1,3 +1,4 @@
+import json
 from typing import Optional
 from enum import Enum
 from src.models.items.consumable import Consumable
@@ -9,7 +10,8 @@ from ..services.item import ItemService
 import random
 from dataclasses import dataclass
 from typing import List
-
+import psycopg2
+from src.config.settings import DATABASE_SETTINGS
 
 class ShopType(Enum):
     GENERAL = "general"
@@ -85,6 +87,14 @@ class Shop:
         self.current_event: Optional[ShopEvent] = None
         self.inventory: List[ShopItem] = self.generate_shop_inventory()
         self.sell_multiplier = SHOP_SETTINGS["SELL_MULTIPLIER"]
+        self.connection = psycopg2.connect(
+            dbname=DATABASE_SETTINGS["DB_NAME"],
+            user=DATABASE_SETTINGS["DB_USER"],
+            password=DATABASE_SETTINGS["DB_PASSWORD"],
+            host=DATABASE_SETTINGS["DB_HOST"],
+            port=DATABASE_SETTINGS["DB_PORT"],
+        )
+        self.cursor = self.connection.cursor()
 
     def _random_shop_type(self) -> ShopType:
         roll = random.random()
@@ -311,3 +321,57 @@ class Shop:
         except Exception as e:
             MessageView.show_error(f"Purchase failed: {str(e)}")
         return False
+
+    def save_shop_state(self, player_id: str) -> None:
+        """Save the current shop state to the database"""
+        shop_state = {
+            "shop_type": self.shop_type.value,
+            "current_event": self.current_event.name if self.current_event else None,
+            "inventory": [
+                {"item": item.item.serialize(), "quantity": item.quantity}
+                for item in self.inventory
+            ],
+        }
+        shop_state_json = json.dumps(shop_state)
+        self.cursor.execute(
+            """
+            INSERT INTO shop_states (player_id, shop_state)
+            VALUES (%s, %s)
+            ON CONFLICT (player_id) DO UPDATE
+            SET shop_state = EXCLUDED.shop_state
+            """,
+            (player_id, shop_state_json),
+        )
+        self.connection.commit()
+
+    def load_shop_state(self, player_id: str) -> None:
+        """Load the shop state from the database"""
+        self.cursor.execute(
+            """
+            SELECT shop_state FROM shop_states
+            WHERE player_id = %s
+            """,
+            (player_id,),
+        )
+        result = self.cursor.fetchone()
+        if result:
+            shop_state_json = result[0]
+            shop_state = json.loads(shop_state_json)
+            self.shop_type = ShopType(shop_state["shop_type"])
+            self.current_event = (
+                ShopEvent(shop_state["current_event"], 1.0)
+                if shop_state["current_event"]
+                else None
+            )
+            self.inventory = [
+                ShopItem(
+                    item=Item.deserialize(item_data["item"]),
+                    quantity=item_data["quantity"],
+                )
+                for item_data in shop_state["inventory"]
+            ]
+
+    def close(self):
+        """Close the database connection"""
+        self.cursor.close()
+        self.connection.close()

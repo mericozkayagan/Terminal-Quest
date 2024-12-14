@@ -23,6 +23,8 @@ from src.services.boss import BossService
 from src.display.boss.boss_view import BossView
 import time
 from src.models.base_types import EffectResult
+from src.services.session_management import SessionManagementService
+from src.services.game_state import GameStateService
 
 # Configure logging
 logging.basicConfig(
@@ -62,26 +64,47 @@ def main():
     base_view = BaseView()
     boss_view = BossView()
     boss_service = BossService()
+    session_service = SessionManagementService()
+    game_state_service = GameStateService()
 
-    # Character creation
-    character_view.show_character_creation()
-    player_name = input().strip()
+    # Player authentication
+    session_service.show_login_screen()
+    player = session_service.authenticate_player()
+    if not player:
+        MessageView.show_error("Authentication failed. Exiting game.")
+        return
 
-    # Use character creation service
-    try:
-        player = CharacterCreationService.create_character(player_name)
-        if not player:
-            MessageView.show_error("Character creation failed: Invalid name provided")
+    # Load game state
+    game_state = game_state_service.load_game_state(player)
+    if game_state:
+        player = game_state["player"]
+        shop = game_state["shop"]
+    else:
+        # Character creation
+        character_view.show_character_creation()
+        player_name = input().strip()
+
+        # Use character creation service
+        try:
+            player = CharacterCreationService.create_character(player_name)
+            if not player:
+                MessageView.show_error(
+                    "Character creation failed: Invalid name provided"
+                )
+                return
+        except ValueError as e:
+            MessageView.show_error(f"Character creation failed: {str(e)}")
             return
-    except ValueError as e:
-        MessageView.show_error(f"Character creation failed: {str(e)}")
-        return
-    except Exception as e:
-        MessageView.show_error("An unexpected error occurred during character creation")
-        return
+        except Exception as e:
+            MessageView.show_error(
+                "An unexpected error occurred during character creation"
+            )
+            return
 
-    # Initialize shop
-    shop = Shop()
+        # Initialize shop
+        shop = Shop()
+
+    base_view.clear_screen()
 
     base_view.clear_screen()
 
@@ -221,6 +244,9 @@ def main():
         elif choice == "5":
             MessageView.show_info("\nThank you for playing! See you next time...")
             break
+
+        # Save game state after each turn
+        game_state_service.save_game_state(player, shop)
 
     if player.health <= 0:
         game_view.show_game_over(player)

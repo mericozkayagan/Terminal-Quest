@@ -1,6 +1,7 @@
 import random
 from typing import Dict, List, Optional, Any
 
+from .skills import Skill
 from ..display.common.message_view import MessageView
 from .base_types import GameEntity, EffectTrigger
 from .effects.base import BaseEffect
@@ -192,6 +193,9 @@ class Player(Character):
         # Initialize equipment slots
         self.equipment = {"weapon": None, "armor": None, "accessory": None}
 
+        # Session management attributes
+        self.session_id = None
+    
     def equip_item(self, item: "Equipment") -> bool:
         """
         Equip an item to the appropriate slot
@@ -289,6 +293,60 @@ class Player(Character):
 
         return heal_amount
 
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize player data to a dictionary"""
+        return {
+            "name": self.name,
+            "description": self.description,
+            "health": self.health,
+            "max_health": self.max_health,
+            "attack": self.attack,
+            "defense": self.defense,
+            "level": self.level,
+            "mana": self.mana,
+            "max_mana": self.max_mana,
+            "exp": self.exp,
+            "exp_to_level": self.exp_to_level,
+            "inventory": self.inventory,
+            "equipment": {
+                slot: item.serialize() if item else None
+                for slot, item in self.equipment.items()
+            },
+            "skills": [skill.serialize() for skill in self.skills],
+            "session_id": self.session_id,
+        }
+
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "Player":
+        """Deserialize player data from a dictionary"""
+        char_class = CharacterClass(
+            name=data["char_class"]["name"],
+            description=data["char_class"]["description"],
+            base_health=data["char_class"]["base_health"],
+            base_mana=data["char_class"]["base_mana"],
+            base_attack=data["char_class"]["base_attack"],
+            base_defense=data["char_class"]["base_defense"],
+            skills=[Skill.deserialize(skill) for skill in data["char_class"]["skills"]],
+        )
+        player = cls(name=data["name"], char_class=char_class)
+        player.description = data["description"]
+        player.health = data["health"]
+        player.max_health = data["max_health"]
+        player.attack = data["attack"]
+        player.defense = data["defense"]
+        player.level = data["level"]
+        player.mana = data["mana"]
+        player.max_mana = data["max_mana"]
+        player.exp = data["exp"]
+        player.exp_to_level = data["exp_to_level"]
+        player.inventory = data["inventory"]
+        player.equipment = {
+            slot: Equipment.deserialize(item) if item else None
+            for slot, item in data["equipment"].items()
+        }
+        player.skills = [Skill.deserialize(skill) for skill in data["skills"]]
+        player.session_id = data["session_id"]
+        return player
 
 class Enemy(Character):
     def __init__(
@@ -315,6 +373,34 @@ class Enemy(Character):
     def get_exp_reward(self) -> int:
         """Return the experience reward for defeating this enemy"""
         return self.exp_reward
+
+    def serialize(self) -> Dict[str, Any]:
+        """Serialize enemy data to a dictionary"""
+        return {
+            "name": self.name,
+            "description": self.description,
+            "health": self.health,
+            "max_health": self.max_health,
+            "attack": self.attack,
+            "defense": self.defense,
+            "level": self.level,
+            "exp_reward": self.exp_reward,
+            "art": self.art,
+        }
+
+    @classmethod
+    def deserialize(cls, data: Dict[str, Any]) -> "Enemy":
+        """Deserialize enemy data from a dictionary"""
+        return cls(
+            name=data["name"],
+            description=data["description"],
+            health=data["health"],
+            attack=data["attack"],
+            defense=data["defense"],
+            exp_reward=data["exp_reward"],
+            level=data["level"],
+            art=data.get("art"),
+        )
 
 
 def get_fallback_enemy(player_level: int = 1) -> Enemy:

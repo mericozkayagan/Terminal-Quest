@@ -9,7 +9,7 @@ class SetBonusService:
     @staticmethod
     def check_set_bonuses(character: "Character") -> Dict[str, List["SetBonus"]]:
         """Check and return active set bonuses for a character"""
-        from ..models.sets.item_sets import ITEM_SETS
+        from ..models.sets.base import ITEM_SETS
 
         active_sets: Dict[str, List["SetBonus"]] = {}
         equipped_set_pieces: Dict[str, int] = {}
