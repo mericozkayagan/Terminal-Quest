@@ -16,12 +16,10 @@ from src.display.themes.dark_theme import SYMBOLS as sym
 from src.services.shop import Shop
 from src.services.boss import BossService
 
-
 class CombatResult(Enum):
     VICTORY = auto()
     DEFEAT = auto()
     RETREAT = auto()
-
 
 def calculate_damage(
     attacker: "Character", defender: "Character", base_damage: int
@@ -288,7 +286,6 @@ def combat(
                 skill.update_cooldown()
 
     return not enemy_queue  # True for victory, False for defeat
-
 
 def handle_level_up(player: Player):
     """Handle level up logic and display"""

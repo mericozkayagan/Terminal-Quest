@@ -106,6 +106,8 @@ def main():
 
     base_view.clear_screen()
 
+    base_view.clear_screen()
+
     # Main game loop
     while player.health > 0:
         BaseView.clear_screen()

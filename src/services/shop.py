@@ -13,7 +13,6 @@ from typing import List
 import psycopg2
 from src.config.settings import DATABASE_SETTINGS
 
-
 class ShopType(Enum):
     GENERAL = "general"
     BLACKSMITH = "blacksmith"  # Weapons and armor

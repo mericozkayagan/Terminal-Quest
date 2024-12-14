@@ -140,4 +140,55 @@ terminal_quest/
 ## Best Practices
 
 ### Code Organization
-- Modular design
+- Modular design with clear separation of concerns
+- Configuration centralized in settings.py
+- Type hints throughout the codebase
+- Comprehensive documentation and comments
+
+### CI/CD
+- Automated testing on pull requests
+- Dependency updates via Dependabot
+- Code quality checks:
+  - Type checking with mypy
+  - Linting with flake8
+  - Formatting with black
+  - Security scanning with bandit
+- Automated test coverage reporting
+
+### Error Handling
+- Graceful fallback system for AI failures
+- Input validation for all user interactions
+- Proper exception handling for file and API operations
+
+### Game Balance
+- Configurable game constants in settings.py
+- Balanced stat ranges for characters and items
+- Progressive difficulty scaling
+- Fair item drop rates and shop prices
+
+### Performance
+- Efficient status effect processing
+- Minimal API calls with caching
+- Optimized combat calculations
+
+## Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Follow the established code style:
+   - Use type hints
+   - Follow PEP 8
+   - Add docstrings for functions and classes
+   - Update tests if applicable
+4. Submit a pull request
+
+## Future Enhancements
+- Quest system
+- More character classes
+- Additional status effects
+- Enhanced AI integration
+- Saving/loading system
+- Multiplayer support
+
+## License
+This project is licensed under the MIT License - see the LICENSE file for details.

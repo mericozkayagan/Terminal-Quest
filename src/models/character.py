@@ -2,7 +2,6 @@ import random
 from typing import Dict, List, Optional, Any
 
 from .skills import Skill
-
 from ..display.common.message_view import MessageView
 from .base_types import GameEntity, EffectTrigger
 from .effects.base import BaseEffect
@@ -196,7 +195,7 @@ class Player(Character):
 
         # Session management attributes
         self.session_id = None
-
+    
     def equip_item(self, item: "Equipment") -> bool:
         """
         Equip an item to the appropriate slot
@@ -348,7 +347,6 @@ class Player(Character):
         player.skills = [Skill.deserialize(skill) for skill in data["skills"]]
         player.session_id = data["session_id"]
         return player
-
 
 class Enemy(Character):
     def __init__(
