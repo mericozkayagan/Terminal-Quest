@@ -7,6 +7,7 @@ from ..models.character import Player
 from ..services.character_creation import CharacterCreationService
 
 connected_clients = set()
+waiting_clients = set()
 
 
 async def handle_client(websocket, path):
@@ -85,8 +86,32 @@ async def handle_client(websocket, path):
                     json.dumps({"status": "success", "game_state": game_state})
                 )
 
+            elif action == "wait_for_players":
+                waiting_clients.add(websocket)
+                await websocket.send(
+                    json.dumps(
+                        {
+                            "status": "waiting",
+                            "message": "Waiting for other players to connect..."
+                        }
+                    )
+                )
+                while len(waiting_clients) < 2:
+                    await asyncio.sleep(1)
+                waiting_clients.remove(websocket)
+                await websocket.send(
+                    json.dumps(
+                        {
+                            "status": "start_game",
+                            "message": "All players connected. Starting the game..."
+                        }
+                    )
+                )
+
     finally:
         connected_clients.remove(websocket)
+        if websocket in waiting_clients:
+            waiting_clients.remove(websocket)
 
 
 async def main():

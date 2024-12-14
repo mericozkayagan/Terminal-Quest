@@ -39,6 +39,21 @@ async def connect_to_server():
         response = await websocket.recv()
         print(response)
 
+        # Wait for other players to connect
+        await websocket.send(json.dumps({"action": "wait_for_players"}))
+        response = await websocket.recv()
+        print(response)
+        response_data = json.loads(response)
+        if response_data.get("status") == "waiting":
+            print("Waiting for other players to connect...")
+            while response_data.get("status") == "waiting":
+                response = await websocket.recv()
+                response_data = json.loads(response)
+                print(response_data.get("message"))
+
+        if response_data.get("status") == "start_game":
+            print("All players connected. Starting the game...")
+
 
 if __name__ == "__main__":
     asyncio.run(connect_to_server())
