@@ -25,6 +25,8 @@ import time
 from src.models.base_types import EffectResult
 from src.services.session_management import SessionManagementService
 from src.services.game_state import GameStateService
+from display.start_screen import StartScreen
+from display.wait_screen import WaitScreen
 
 # Configure logging
 logging.basicConfig(
@@ -66,6 +68,18 @@ def main():
     boss_service = BossService()
     session_service = SessionManagementService()
     game_state_service = GameStateService()
+    start_screen = StartScreen()
+    wait_screen = WaitScreen()
+
+    # Show start screen
+    start_screen.show_start_screen()
+    start_choice = start_screen.handle_user_input()
+
+    if start_choice == "wait_for_players":
+        wait_screen.show_wait_screen()
+        wait_choice = wait_screen.handle_user_input()
+        if wait_choice == "cancel":
+            return
 
     # Player authentication
     session_service.show_login_screen()
