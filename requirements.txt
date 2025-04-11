@@ -7,3 +7,4 @@ black>=23.7.0
 flake8>=6.1.0
 mypy>=1.5.1
 bandit>=1.7.5
+psycopg2-binary>=2.9.9
