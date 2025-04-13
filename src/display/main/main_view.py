@@ -44,7 +44,8 @@ class GameView(BaseView):
         print(f"  {sym['CURSOR']} 2  Shop")
         print(f"  {sym['CURSOR']} 3  Rest")
         print(f"  {sym['CURSOR']} 4  Inventory")
-        print(f"  {sym['CURSOR']} 5  Exit")
+        print(f"  {sym['CURSOR']} 5  Save Game")
+        print(f"  {sym['CURSOR']} 6  Exit")
 
         # Themed input prompt
         print(f"\n{dec['SMALL_SEP']}")

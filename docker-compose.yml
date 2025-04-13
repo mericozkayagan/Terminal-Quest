@@ -1,0 +1,19 @@
+version: "3.8"
+
+services:
+  postgres:
+    image: postgres:15.3-alpine
+    container_name: terminal-quest-db
+    environment:
+      POSTGRES_USER: terminal_quest
+      POSTGRES_PASSWORD: password
+      POSTGRES_DB: terminal_quest
+    ports:
+      - "5432:5432"
+    volumes:
+      - terminal_quest_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+volumes:
+  terminal_quest_data:
+    driver: local

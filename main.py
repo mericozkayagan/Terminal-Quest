@@ -1,6 +1,8 @@
 #!/usr/bin/env python3
 
 import logging
+import time
+import sys
 from dotenv import load_dotenv
 from src.models.items.consumable import Consumable
 from src.config.logging_config import setup_logging
@@ -21,6 +23,8 @@ from src.display.themes.dark_theme import DECORATIONS as dec
 from src.display.themes.dark_theme import SYMBOLS as sym
 from src.services.boss import BossService
 from src.display.boss.boss_view import BossView
+from src.services.save_manager import SaveManager
+from src.display.save.save_view import SaveView
 import time
 from src.models.base_types import EffectResult
 
@@ -32,6 +36,9 @@ logging.basicConfig(
 )
 
 logger = logging.getLogger(__name__)
+
+# Global variable to track the last save slot used
+LAST_SAVE_SLOT = 1
 
 
 def handle_effect_result(result: EffectResult) -> None:
@@ -48,10 +55,37 @@ def handle_effect_result(result: EffectResult) -> None:
         CombatView.show_damage(result["damage"])
 
 
+def autosave(player: Player) -> None:
+    """Automatically save the game using the last used slot"""
+    global LAST_SAVE_SLOT
+    if SaveManager.save_system_available:
+        # Don't show any UI for autosave, just do it silently
+        if SaveManager.handle_autosave(player, LAST_SAVE_SLOT):
+            logger.info(f"Game autosaved to slot {LAST_SAVE_SLOT}")
+        else:
+            logger.error(f"Failed to autosave game to slot {LAST_SAVE_SLOT}")
+
+
 def main():
     """Main game loop"""
+    global LAST_SAVE_SLOT
     setup_logging()
     load_dotenv()
+
+    # Initialize save system
+    try:
+        save_system_available = SaveManager.initialize()
+        if not save_system_available:
+            MessageView.show_error(
+                "Save system initialization failed. The game will run without save functionality."
+            )
+            time.sleep(2)
+    except Exception as e:
+        logger.error(f"Save system initialization error: {str(e)}")
+        MessageView.show_error(
+            "Failed to initialize save system. Game will run without save functionality."
+        )
+        time.sleep(2)
 
     # Initialize views
     game_view = GameView()
@@ -63,22 +97,38 @@ def main():
     boss_view = BossView()
     boss_service = BossService()
 
-    # Character creation
-    character_view.show_character_creation()
-    player_name = input().strip()
+    # Show start menu
+    should_continue, loaded_player, save_slot = SaveManager.handle_start_menu()
+    if not should_continue:
+        MessageView.show_info("Thanks for playing!")
+        return
 
-    # Use character creation service
-    try:
-        player = CharacterCreationService.create_character(player_name)
-        if not player:
-            MessageView.show_error("Character creation failed: Invalid name provided")
+    # Update the last save slot if we loaded a character
+    if save_slot:
+        LAST_SAVE_SLOT = save_slot
+
+    # Character creation or use loaded player
+    player = loaded_player
+    if not player:
+        character_view.show_character_creation()
+        player_name = input().strip()
+
+        # Use character creation service
+        try:
+            player = CharacterCreationService.create_character(player_name)
+            if not player:
+                MessageView.show_error(
+                    "Character creation failed: Invalid name provided"
+                )
+                return
+        except ValueError as e:
+            MessageView.show_error(f"Character creation failed: {str(e)}")
             return
-    except ValueError as e:
-        MessageView.show_error(f"Character creation failed: {str(e)}")
-        return
-    except Exception as e:
-        MessageView.show_error("An unexpected error occurred during character creation")
-        return
+        except Exception as e:
+            MessageView.show_error(
+                "An unexpected error occurred during character creation"
+            )
+            return
 
     # Initialize shop
     shop = Shop()
@@ -121,6 +171,9 @@ def main():
 
                         if player.exp >= player.exp_to_level:
                             handle_level_up(player)
+
+                        # Autosave after boss encounter
+                        autosave(player)
                         time.sleep(5)
                     else:  # Retreat
                         MessageView.show_info("You retreat from the powerful foe...")
@@ -162,6 +215,9 @@ def main():
 
                         if player.exp >= player.exp_to_level:
                             handle_level_up(player)
+
+                        # Autosave after successful combat
+                        autosave(player)
                     else:  # Retreat
                         MessageView.show_info("You retreat from battle...")
                         time.sleep(2)
@@ -173,12 +229,16 @@ def main():
 
         elif choice == "2":  # Shop
             shop_view.handle_shop_interaction(shop, player)
+            # Autosave after shopping
+            autosave(player)
 
-        elif choice == "3":
+        elif choice == "3":  # Rest
             healing = player.rest()
             base_view.display_meditation_effects(healing)
+            # Autosave after resting
+            autosave(player)
 
-        elif choice == "4":
+        elif choice == "4":  # Inventory
             while True:
                 inventory_view.show_inventory(player)
                 print(f"\n{dec['SECTION']['START']}Actions{dec['SECTION']['END']}")
@@ -191,6 +251,8 @@ def main():
 
                 if inv_choice == "1":
                     inventory_view.show_equipment_management(player)
+                    # Autosave after equipment changes
+                    autosave(player)
                 elif inv_choice == "2":
                     # Show usable items
                     usable_items = [
@@ -211,6 +273,8 @@ def main():
                                 if item.use(player):
                                     player.inventory["items"].pop(idx - 1)
                                     MessageView.show_success(f"Used {item.name}")
+                                    # Autosave after using items
+                                    autosave(player)
                         except ValueError:
                             MessageView.show_error("Invalid choice!")
                     else:
@@ -218,7 +282,32 @@ def main():
                 elif inv_choice == "3":
                     break
 
-        elif choice == "5":
+        elif choice == "5":  # Save Game
+            if not SaveManager.save_system_available:
+                MessageView.show_error("Save system is not available.")
+                time.sleep(1.5)
+            else:
+                # Pass in the last used slot as the default
+                success, slot_used = SaveManager.handle_save_game(
+                    player, LAST_SAVE_SLOT
+                )
+                if success and slot_used:
+                    LAST_SAVE_SLOT = slot_used
+
+        elif choice == "6":  # Exit
+            # Prompt for saving before exit
+            if SaveManager.save_system_available:
+                MessageView.show_info(
+                    "Do you want to save your game before exiting? (y/n)"
+                )
+                save_choice = input().strip().lower()
+                if save_choice == "y":
+                    success, slot_used = SaveManager.handle_save_game(
+                        player, LAST_SAVE_SLOT
+                    )
+                    if success and slot_used:
+                        LAST_SAVE_SLOT = slot_used
+
             MessageView.show_info("\nThank you for playing! See you next time...")
             break
 
