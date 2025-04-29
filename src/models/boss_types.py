@@ -16,7 +16,7 @@ BOSS_ART = {
 ║     ███╚═▓▓██◆██◆██▓▓═╝███        ║
 ║     ██▓█╔═▒▀██████▀▒═╗█▓██        ║
 ║     ██░█║◆░══════░░◆║█░██         ║
-║     ██░█��▒██████▒▓╝█░██         ║
+║     ██░█▒██████▒▓╝█░██         ║
 ║      ██▄║░▓▀████▀▓░║▄██          ║
 ║       ██╚═▓██████▓═╝██           ║
 ║        █▄▄▀▀═══▀▀▄▄█            ║
@@ -100,7 +100,7 @@ BOSS_ENEMIES = [
         title="Guardian of the Abyss",
         description="An ancient guardian corrupted by the void, wielding devastating dark powers.",
         associated_set=VOID_SENTINEL_SET,
-        requirements=BossRequirement(min_player_level=6),
+        requirements=BossRequirement(min_player_level=1),
         special_effects=[VOID_EMPOWERED],
         skills=VOID_SENTINEL_SKILLS,
         exp_reward=2000,

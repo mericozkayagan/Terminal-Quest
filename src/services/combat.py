@@ -221,6 +221,13 @@ def combat(
         for skill in player.skills:
             skill.update_cooldown()
 
+        # Refresh display after enemy turn and before loop check
+        BaseView.clear_screen()
+        combat_view.show_combat_status(player, enemy, combat_log)
+        time.sleep(
+            DISPLAY_SETTINGS.get("COMBAT_TURN_DELAY", 1.5)
+        )  # Add a small delay to see the result
+
     return enemy.health <= 0  # True for victory, False shouldn't happen here
 
 

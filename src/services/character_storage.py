@@ -12,6 +12,7 @@ from src.models.items.equipment import Equipment
 from src.models.items.consumable import Consumable
 from src.models.items.item import Item
 from src.models.base_types import ItemType, ItemRarity
+from src.services.encounter import EncounterService
 
 logger = logging.getLogger(__name__)
 
@@ -106,6 +107,25 @@ class CharacterStorageService:
                 )
 
                 character_id = cursor.fetchone()["id"]
+
+                # Save game state - boss encounter tracking
+                encounter_service = EncounterService()
+                cursor.execute(
+                    """
+                    INSERT INTO game_state
+                    (character_id, encounters_until_boss, total_boss_interval, encounter_count)
+                    VALUES (%s, %s, %s, %s)
+                    """,
+                    (
+                        character_id,
+                        encounter_service.encounters_until_boss,
+                        encounter_service.total_boss_interval,
+                        encounter_service.encounter_count,
+                    ),
+                )
+                logger.info(
+                    f"Saved boss counter state: {encounter_service.encounters_until_boss}/{encounter_service.total_boss_interval}"
+                )
 
                 # Save inventory items
                 for item in player.inventory.get("items", []):
@@ -273,35 +293,43 @@ class CharacterStorageService:
             items_result = execute_query(items_query, (character_id,))
 
             # Process items
-            for item_data in items_result:
-                from src.models.items.equipment import Equipment
-                from src.models.items.consumable import Consumable
+            for row in items_result:
+                item_type = row["item_type"]
+                item_name = row["item_name"]
+                is_equipped = row["equipped"]
+                slot = row["slot"]
 
-                item_type = item_data["item_type"]
-                item_name = item_data["item_name"]
-                item_json = json.loads(item_data["item_data"])
-                is_equipped = item_data["equipped"]
-                slot = item_data["slot"]
+                try:
+                    # Directly assign the dictionary from the database row
+                    item_data = row["item_data"]
+                except (
+                    json.JSONDecodeError
+                ) as e:  # Keep for safety in case data is unexpectedly not JSON
+                    logger.error(f"Error decoding JSON for item {item_name}: {e}")
+                    continue
+                except TypeError as e:  # This error should definitely be gone now
+                    logger.error(f"Error processing item data for {item_name}: {e}")
+                    return None  # Stop loading
 
                 # Create item based on type
                 item = None
 
                 if item_type == "Equipment":
                     # Convert string item_type to enum
-                    type_enum = ItemType[item_json.get("item_type", "WEAPON")]
+                    type_enum = ItemType[item_data.get("item_type", "WEAPON")]
 
                     # Convert string rarity to enum if present
                     rarity = None
-                    if "rarity" in item_json:
-                        rarity = ItemRarity[item_json.get("rarity", "COMMON")]
+                    if "rarity" in item_data:
+                        rarity = ItemRarity[item_data.get("rarity", "COMMON")]
 
                     item = Equipment(
                         name=item_name,
-                        description=item_json.get("description", ""),
-                        value=item_json.get("value", 0),
-                        stat_modifiers=item_json.get("stat_modifiers", {}),
+                        description=item_data.get("description", ""),
+                        value=item_data.get("value", 0),
+                        stat_modifiers=item_data.get("stat_modifiers", {}),
                         item_type=type_enum,
-                        set_name=item_json.get("set_name"),
+                        set_name=item_data.get("set_name"),
                         rarity=rarity,
                     )
 
@@ -315,14 +343,60 @@ class CharacterStorageService:
                         player.inventory["items"].append(item)
 
                 elif item_type == "Consumable":
+                    # Create Consumable using the fields its __init__ expects
+                    # NOTE: We are ignoring effect_type and effect_strength from item_data
+                    #       as the current Consumable class doesn't use them.
+                    #       We might need a migration strategy later if effects are needed.
                     item = Consumable(
                         name=item_name,
-                        description=item_json.get("description", ""),
-                        value=item_json.get("value", 0),
-                        effect_type=item_json.get("effect_type", "heal"),
-                        effect_strength=item_json.get("effect_strength", 10),
+                        description=item_data.get("description", ""),
+                        value=item_data.get("value", 0),
+                        # Add rarity if it exists in the saved data
+                        rarity=(
+                            ItemRarity[item_data.get("rarity", "COMMON")]
+                            if "rarity" in item_data
+                            else ItemRarity.COMMON
+                        ),
+                        # We don't have saved 'effects' or 'use_effect' data here
+                        effects=None,  # Or potentially load based on name?
+                        use_effect=None,  # Or potentially load based on name?
                     )
                     player.inventory["items"].append(item)
+
+            # Load game state - boss encounter tracking
+            state_query = """
+            SELECT * FROM game_state WHERE character_id = %s
+            """
+
+            state_result = execute_query(state_query, (character_id,))
+
+            if state_result:
+                # Update global EncounterService instance with loaded values
+                encounter_service = EncounterService()
+                state_data = state_result[0]
+
+                # Load the current progress toward the boss
+                encounter_service.encounters_until_boss = state_data[
+                    "encounters_until_boss"
+                ]
+                # Load the general encounter count
+                encounter_service.encounter_count = state_data["encounter_count"]
+
+                # --- DEBUGGING MODIFICATION ---
+                # Use the boss interval setting from .env (read by EncounterService init)
+                # instead of the saved total_boss_interval.
+                # This allows overriding the interval via .env for testing.
+                encounter_service.total_boss_interval = (
+                    encounter_service._boss_interval_setting
+                )
+                logger.info(
+                    f"Loaded boss counter state (Progress: {encounter_service.encounters_until_boss}, Interval Forced by .env: {encounter_service.total_boss_interval})"
+                )
+                # --- END DEBUGGING MODIFICATION ---
+            else:
+                logger.warning(
+                    f"No game state found for character {character_id}, using default values"
+                )
 
             logger.info(f"Character {player.name} loaded from slot {slot_number}")
             return player

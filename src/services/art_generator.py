@@ -3,6 +3,7 @@ from dataclasses import dataclass
 import logging
 from src.utils.json_cleaner import JSONCleaner
 from .ai_core import generate_content
+import random
 
 logger = logging.getLogger(__name__)
 
@@ -103,13 +104,13 @@ def _generate_art(
     return None
 
 
-def generate_enemy_art(enemy_name: str, description: str) -> Optional[str]:
+def generate_enemy_art(enemy_name: str, enemy_description: str) -> str:
     """Generate detailed ASCII art for corrupted enemies"""
     prompt = f"""Create a corrupted being ASCII art for '{enemy_name}'.
 
 World Lore: {LORE['world']}
 Enemy Lore: {LORE['enemy']}
-Creature Description: {description}
+Creature Description: {enemy_description}
 
 Requirements:
 1. Use ONLY these characters: {ArtGenerationConfig.characters}
@@ -135,7 +136,16 @@ Example format:
 
 Return ONLY the raw ASCII art."""
 
-    return _generate_art(prompt)
+    try:
+        # Use the _generate_art function to ensure proper formatting and validation
+        content = _generate_art(prompt, ArtGenerationConfig(width=30, height=8))
+        if content:
+            return content
+
+        return get_default_enemy_art()
+    except Exception as e:
+        logger.error(f"Error in enemy art generation: {str(e)}")
+        return get_default_enemy_art()
 
 
 def generate_item_art(item_name: str, description: str) -> Optional[str]:
@@ -158,7 +168,7 @@ Requirements:
    - Material composition
 
 Example format:
-╔═══════��════════╗
+╔═══════════════════════════╗
 ║  ▄▄████████▄   ║
 ║ █▓░◆═══◆░▓█   ║
 ║ ██╲▓▓██▓▓╱██  ║
@@ -170,7 +180,7 @@ Return ONLY the raw ASCII art."""
     return _generate_art(prompt)
 
 
-def generate_class_art(class_name: str, description: str = "") -> Optional[str]:
+def generate_class_art(class_name: str, description: str = "") -> str:
     """Generate detailed ASCII art for character classes"""
     prompt = f"""Create a dark fantasy character portrait ASCII art for '{class_name}'.
 
@@ -208,4 +218,209 @@ Example format:
 
 Return ONLY the raw ASCII art."""
 
-    return _generate_art(prompt)
+    try:
+        # Use the _generate_art function for consistent formatting
+        content = _generate_art(prompt, ArtGenerationConfig(width=30, height=15))
+        if content:
+            return content
+
+        return get_default_class_art()
+    except Exception as e:
+        logger.error(f"Error in class art generation: {str(e)}")
+        return get_default_class_art()
+
+
+def generate_ascii_portrait(character_name: str, character_description: str) -> str:
+    """Generate detailed ASCII art portrait for an NPC or character"""
+    prompt = f"""Create a detailed ASCII art portrait for a dark fantasy character named '{character_name}'.
+
+Character Description: {character_description}
+World Lore: {LORE['world']}
+
+Requirements:
+1. Use ONLY these characters: {ArtGenerationConfig.characters}
+2. Create EXACTLY 13 lines of art
+3. Each line must be EXACTLY 35 characters
+4. Focus on CHARACTER features:
+   - Distinctive facial features
+   - Clothing and accessories
+   - Signs of corruption or resistance to hope
+   - Expressions that reflect their nature
+   - Full upper body if possible
+
+Example format:
+╔═══════════════════════════════════╗
+║         ▄▄████████▄▄              ║
+║       ▄█▓░╱║██████║╲░▓█▄          ║
+║      ██▓█▀▀╚════╝▀▀█▓██           ║
+║      ███╔═▓░▄▄▄▄░▓═╗███           ║
+║      ▀██║░▒▓████▓▒░║██▀           ║
+║       ██╚═▓▓▓██▓▓▓═╝██            ║
+║        ▀▀████▀▀████▀▀             ║
+║         ██▀▀░██░▀▀██              ║
+║        ▄█▌░▒▄██▄▒░▐█▄             ║
+║       ▄█░▒▓█▀██▀█▓▒░█▄            ║
+║      ██▀▄▄▄▄▄██▄▄▄▄▄▀██           ║
+╚═══════════════════════════════════╝
+
+Return ONLY the raw ASCII art."""
+
+    try:
+        content = _generate_art(prompt, ArtGenerationConfig(width=35, height=13))
+        if content:
+            return content
+
+        return get_default_npc_art(character_name)
+    except Exception as e:
+        logger.error(f"Error in portrait art generation: {str(e)}")
+        return get_default_npc_art(character_name)
+
+
+def get_default_enemy_art() -> str:
+    """Return a default ASCII art for enemies when generation fails"""
+    default_arts = [
+        """
+╔═══════════════════════════╗
+║     ▄▄████████████▄▄      ║
+║   ▄█▓░╱║██████║╲░▓█▄      ║
+║  ██▓█▀▀╚════╝▀▀█▓██       ║
+║  ███╔═▓░▄▄▄▄░▓═╗███       ║
+║  ▀██║░▒▓████▓▒░║██▀       ║
+║   ██╚═▓▓▓██▓▓▓═╝██        ║
+║    ▀▀████▀▀████▀▀         ║
+╚═══════════════════════════╝
+""",
+        """
+╔═══════════════════════════╗
+║      ▄▄██████████▄▄       ║
+║    ▄█▓░░░╳░░░░╳░░▓█▄      ║
+║   ██▓█▀▀◣◢◤◥▀▀█▓██        ║
+║   ███╔══▒▓██▓▒══╗███      ║
+║   ▀██╝◆═══════◆╚██▀       ║
+║    ██▄▄████████▄▄██       ║
+║     █░▄▀▀▀██▀▀▀▄░█        ║
+╚═══════════════════════════╝
+""",
+        """
+╔═══════════════════════════╗
+║     ▄▄▄███████▄▄▄         ║
+║    █▓░▄▀▓██████▓▀▄░▓█     ║
+║   ██▓█▀░▒▓▒░░▒▓▒░▀█▓██    ║
+║  ██▓╔═┼─◆─◆─┼═╗▓██        ║
+║  ██▓║▒▒▒████▒▒▒║▓██       ║
+║   ██┴─▀▀◆══◆▀▀─┴██        ║
+║    █▄░▒▒▒▓░░▓▒▒▒░▄█        ║
+╚═══════════════════════════╝
+""",
+    ]
+    return random.choice(default_arts)
+
+
+def get_default_class_art() -> str:
+    """Return a default ASCII art for character classes when generation fails"""
+    default_arts = [
+        """
+╔════════════════════════════════╗
+║      ▄▄███████████▄▄           ║
+║    ▄█▀▀░░░░░░░░░▀▀█▄           ║
+║   ██░▒▓████████▓▒░██           ║
+║  ██░▓█▀╔══╗╔══╗▀█▓░██          ║
+║  █▓▒█╔══║██║══╗█▒▓█            ║
+║  █▓▒█║◆═╚══╝═◆║█▒▓█            ║
+║  ██▓█╚════════╝█▓██            ║
+║   ███▀▀══════▀▀███             ║
+║  ██╱▓▓▓██████▓▓▓╲██            ║
+║ ██▌║▓▓▓▓▀██▀▓▓▓▓║▐██           ║
+║ ██▌║▓▓▓▓░██░▓▓▓▓║▐██           ║
+║  ██╲▓▓▓▓░██░▓▓▓▓╱██            ║
+║   ███▄▄░████░▄▄███             ║
+╚════════════════════════════════╝
+""",
+        """
+╔════════════════════════════════╗
+║       ▄▄██████████▄▄           ║
+║     ▄█▀░░▓██████▓░░▀█▄         ║
+║    ██▓░▒┼═┼══┼═┼▒░▓██          ║
+║   ██▓╔══╗▓██████▓╔══╗▓██       ║
+║   ██▓║◆◆║██████║◆◆║▓██         ║
+║   ██▓╚══╝▓██████▓╚══╝▓██       ║
+║    ███░░╱╲██████╱╲░░███        ║
+║    ▄█▀▓▓▓██████████▓▓▓▀█▄      ║
+║   ▄█▓░▒████████████▒░▓█▄       ║
+║  ██▓░▓▓█▀██████▀█▓▓░▓██        ║
+║  ██▓╔═╝█▓██████▓█╚═╗▓██        ║
+║  ███╚══▓██████████══╝███       ║
+║   ███▄▄██████████▄▄███         ║
+╚════════════════════════════════╝
+""",
+        """
+╔════════════════════════════════╗
+║       ▄▄█████████▄▄            ║
+║     ▄█▀░░░▓████▓░░░▀█▄         ║
+║    ██▓░▒▒▒██████▒▒▒░▓██        ║
+║   ██▓░▓▀╔══╗╔══╗▀▓░▓██         ║
+║   ██▓║╲░║██████║░╱║▓██         ║
+║   ██▓╝◆═╚══╝╚══╝═◆╚▓██         ║
+║    ███▓▒▒██████▒▒▓███          ║
+║     ██▒▓▓██████▓▓▒██           ║
+║    ██╱╱╲╲██████╱╱╲╲██          ║
+║   ██▌░░░░██████░░░░▐██         ║
+║   ██▌╔══╗██████╔══╗▐██         ║
+║    ██╚═▓▓██████▓▓═╝██          ║
+║     ███▄▄██████▄▄███           ║
+╚════════════════════════════════╝
+""",
+    ]
+    return random.choice(default_arts)
+
+
+def get_default_npc_art(npc_name: str = "") -> str:
+    """Return a detailed default ASCII art for NPCs when generation fails"""
+    default_arts = [
+        """
+╔═══════════════════════════════════╗
+║         ▄▄████████▄▄              ║
+║       ▄█▓░╱║██████║╲░▓█▄          ║
+║      ██▓█▀▀╚════╝▀▀█▓██           ║
+║      ███╔═▓░▄▄▄▄░▓═╗███           ║
+║      ▀██║░▒▓████▓▒░║██▀           ║
+║       ██╚═▓▓▓██▓▓▓═╝██            ║
+║        ▀▀████▀▀████▀▀             ║
+║         ██▀▀░██░▀▀██              ║
+║        ▄█▌░▒▄██▄▒░▐█▄             ║
+║       ▄█░▒▓█▀██▀█▓▒░█▄            ║
+║      ██▀▄▄▄▄▄██▄▄▄▄▄▀██           ║
+╚═══════════════════════════════════╝
+""",
+        """
+╔═══════════════════════════════════╗
+║           ▄▄███▄▄                 ║
+║        ▄██▓▒░░░▒▓██▄              ║
+║       ██▓░▒▓██▓▒░▓██              ║
+║      ██░▓█╔═╗╔═╗█▓░██             ║
+║      █▓▒█║▒╚╝▒╚╝║█▒▓█             ║
+║      █▓▒█╚════════╝█▒▓█           ║
+║      ██▓█░▒▒▒▓▓▒▒▒░█▓██           ║
+║       ███░▒▓████▓▒░███            ║
+║      ██╱▓▓▓▓████▓▓▓▓╲██           ║
+║     ██▌║▓▓▓▓░██░▓▓▓▓║▐██          ║
+║     ██▌║▓▓▓▓░██░▓▓▓▓║▐██          ║
+╚═══════════════════════════════════╝
+""",
+        """
+╔═══════════════════════════════════╗
+║           ▄▄█████▄▄               ║
+║        ▄█▀▀░░░░░░░▀▀█▄            ║
+║       ██░▒▓████████▓▒░██          ║
+║      ██░▓█▀╔══╗╔══╗▀█▓░██         ║
+║      █▓▒█╔══║██║══╗█▒▓█           ║
+║      █▓▒█║◆═╚══╝═◆║█▒▓█           ║
+║      ██▓█╚════════╝█▓██           ║
+║       ███▀▀══════▀▀███            ║
+║      ██╱▓▓▓██████▓▓▓╲██           ║
+║     ██▌║▓▓▓▓▀██▀▓▓▓▓║▐██          ║
+║     ██▌║▓▓▓▓░██░▓▓▓▓║▐██          ║
+╚═══════════════════════════════════╝
+""",
+    ]
+    return random.choice(default_arts)

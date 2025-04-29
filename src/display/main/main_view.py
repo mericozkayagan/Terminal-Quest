@@ -4,6 +4,7 @@ from src.display.themes.dark_theme import SYMBOLS as sym
 from src.display.themes.dark_theme import DECORATIONS as dec
 from src.models.character import Player
 import random
+from src.services.encounter import EncounterService
 
 
 class GameView(BaseView):
@@ -30,6 +31,50 @@ class GameView(BaseView):
         print(f"  {sym['EXP']} Exp       {character.exp}/{character.exp_to_level}")
         print(f"  {sym['GOLD']} Gold      {character.inventory['Gold']}")
 
+        # Get boss progress from the CURRENT singleton instance
+        encounter_service = EncounterService()  # Get the singleton instance dynamically
+        boss_progress = encounter_service.get_boss_progress()
+
+        # Display boss progress
+        if boss_progress:
+            total = boss_progress["total_boss_interval"]
+            remaining = boss_progress["encounters_until_boss"]
+            completed = total - remaining
+
+            # Use symbols from dark theme for progress: completed encounters, remaining, and boss
+            # Add spacing between symbols for better readability
+            progress_symbols = (
+                f"{sym['SUCCESS']} " * completed
+                + f"{sym['TAINT']} " * remaining
+                + f"{sym['SKULL']}"
+            )
+
+            print(f"\n{dec['SECTION']['START']}Corruption Path{dec['SECTION']['END']}")
+            print(f"  {sym['SKULL']} Boss Path: {progress_symbols}")
+
+            # Show numeric progress with different descriptions based on progress percentage
+            progress_percent = ((total - remaining) / total) * 100
+            if remaining <= 0:
+                print(
+                    f"  {sym['WARNING']} The corruption has manifested! Prepare for battle!"
+                )
+            elif progress_percent >= 75:
+                print(
+                    f"  {sym['WARNING']} The corruption grows strong... {remaining} encounters remain."
+                )
+            elif progress_percent >= 50:
+                print(
+                    f"  {sym['INFO']} The corruption gathers... {remaining} encounters until manifestation."
+                )
+            elif progress_percent >= 25:
+                print(
+                    f"  {sym['INFO']} Corruption stirs in the distance... {remaining} encounters until manifestation."
+                )
+            else:
+                print(
+                    f"  {sym['INFO']} {remaining} encounters until the corruption manifests..."
+                )
+
         # Equipment
         if any(character.equipment.values()):
             print(f"\n{dec['SECTION']['START']}Equipment{dec['SECTION']['END']}")
@@ -44,8 +89,16 @@ class GameView(BaseView):
         print(f"  {sym['CURSOR']} 2  Shop")
         print(f"  {sym['CURSOR']} 3  Rest")
         print(f"  {sym['CURSOR']} 4  Inventory")
-        print(f"  {sym['CURSOR']} 5  Save Game")
-        print(f"  {sym['CURSOR']} 6  Exit")
+        print(f"  {sym['CURSOR']} 5  Exit")
+
+        # Check if boss is ready and add option if so
+        # Re-fetch the instance here too for consistency, although boss_progress already has the data
+        encounter_service = EncounterService()  # Get the singleton instance dynamically
+        boss_progress = (
+            encounter_service.get_boss_progress()
+        )  # Or reuse the boss_progress dict from above
+        if boss_progress and boss_progress["encounters_until_boss"] <= 0:
+            print(f"  {sym['CURSOR']} 6  Face the Corruption {sym['SKULL']}")
 
         # Themed input prompt
         print(f"\n{dec['SMALL_SEP']}")

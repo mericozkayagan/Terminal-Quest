@@ -34,6 +34,15 @@ SYMBOLS = {
     "TAINT": "▒",
     "COOLDOWN": "⌛",
     "DAMAGE": "✖",  # Damage symbol
+    # New encounter symbols
+    "PUZZLE": "❓",  # Puzzle symbol
+    "HINT": "💡",  # Hint symbol
+    "SUCCESS": "✓",  # Success symbol
+    "FAILURE": "✗",  # Failure symbol
+    "ITEM": "✪",  # Item symbol
+    "NPC": "⚇",  # NPC symbol
+    "TRAP": "⚠",  # Trap symbol
+    "WARNING": "⚠",  # Warning symbol
 }
 
 DECORATIONS = {

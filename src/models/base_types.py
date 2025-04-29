@@ -20,12 +20,21 @@ class ItemRarity(Enum):
     @property
     def drop_chance(self) -> float:
         return {
-            ItemRarity.COMMON: 0.15,
-            ItemRarity.UNCOMMON: 0.10,
-            ItemRarity.RARE: 0.05,
-            ItemRarity.EPIC: 0.03,
-            ItemRarity.LEGENDARY: 0.01,
+            ItemRarity.COMMON: 0.7,
+            ItemRarity.UNCOMMON: 0.4,
+            ItemRarity.RARE: 0.2,
+            ItemRarity.EPIC: 0.08,
+            ItemRarity.LEGENDARY: 0.02,
         }[self]
+
+
+class EncounterType(Enum):
+    COMBAT = "combat"
+    PUZZLE = "puzzle"
+    TREASURE = "treasure"
+    TRAP = "trap"
+    NPC = "npc"
+    BOSS = "boss"
 
 
 @dataclass

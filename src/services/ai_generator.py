@@ -1,7 +1,7 @@
-from typing import Optional
+from typing import Optional, Dict, Any
 from ..models.character_classes import CharacterClass
 from ..models.skills import Skill
-from ..models.character import Enemy
+from ..models.character import Enemy, get_fallback_enemy
 from ..config.settings import STAT_RANGES
 from .ai_core import generate_content
 from .art_generator import generate_class_art, generate_enemy_art
@@ -129,76 +129,120 @@ CRITICAL JSON RULES:
         return random.choice(FALLBACK_CLASSES)
 
 
-def generate_enemy(player_level: int = 1) -> Optional[Enemy]:
-    """Generate an enemy based on player level"""
-    logger.info(f"Generating enemy for player level {player_level}")
-
+def _try_parse_enemy_data(content: str) -> Optional[Dict[str, Any]]:
+    """
+    Try to parse enemy data from AI response.
+    Returns parsed data or None if parsing failed.
+    """
     try:
-        # Generate enemy data first
-        data_prompt = """Create a dark fantasy enemy corrupted by the God of Hope's invasion.
+        # Try to parse as JSON first
+        data = json.loads(content)
+        return data
+    except json.JSONDecodeError:
+        # If JSON parsing fails, try to extract JSON-like structure
+        # from the text using string manipulation
+        logger.warning(
+            "Failed to parse enemy data as JSON, attempting manual extraction"
+        )
+        try:
+            # Look for opening and closing braces
+            start_idx = content.find("{")
+            end_idx = content.rfind("}")
 
-Background: The God of Hope's presence twists all it touches, corrupting beings with a perverted form of hope that drives them mad.
-These creatures now roam the realm, spreading the Curse of Hope.
-
-Guidelines:
-- Should be a being corrupted by the God of Hope's influence
-- Can be former holy creatures now twisted by hope
-- Can be ancient beings awakened and corrupted
-- Stats must be balanced for player combat
-- Description should reflect their corruption by hope
-- Enemy stats should scale with player level, creating stronger enemies at higher levels
-
-STRICT JSON RULES:
-- Return ONLY valid JSON matching the EXACT structure below
-- Every property MUST use double quotes
-- All numbers MUST be integers without decimals
-- Do not add any extra properties
-- No trailing commas
-- No comments or explanations
-
-Required JSON structure:
-{
-    "name": "string (enemy name)",
-    "description": "string (enemy description)",
-    "level": "integer between 1-5",
-    "health": "integer between 30-100",
-    "attack": "integer between 8-25",
-    "defense": "integer between 2-10",
-    "exp_reward": "integer between 20-100"
-}"""
-
-        content = generate_content(data_prompt)
-        if not content:
+            if start_idx >= 0 and end_idx > start_idx:
+                # Extract potential JSON string
+                json_str = content[start_idx : end_idx + 1]
+                # Try to parse this extracted part
+                data = json.loads(json_str)
+                return data
+            else:
+                logger.error("Could not find valid JSON structure in the response")
+                return None
+        except Exception as e:
+            logger.error(f"Error extracting enemy data: {str(e)}")
             return None
 
-        data = json.loads(content)
-        logger.debug(f"Parsed enemy data: {data}")
 
-        # Create enemy from raw stats
-        enemy = Enemy(
+def generate_enemy(player_level: int) -> Enemy:
+    """Generate an enemy based on player level"""
+    try:
+        logger.info(f"Generating enemy for player level {player_level}")
+
+        # Generate enemy data
+        prompt = f"""Create a unique enemy for a dark fantasy game where the world is corrupted by a malevolent entity known as the God of Hope.
+
+Player level: {player_level}
+
+Return a JSON object with:
+{{
+  "name": "Enemy name",
+  "description": "Brief description (1-2 sentences)",
+  "health": number (between {60 + player_level * 10} and {100 + player_level * 15}),
+  "attack": number (between {8 + player_level * 2} and {12 + player_level * 3}),
+  "defense": number (between {3 + player_level} and {6 + player_level * 2}),
+  "level": number (around {player_level}, slightly higher or lower)
+}}
+
+Make the enemy thematically consistent with a world twisted by false hope.
+"""
+
+        content = generate_content(prompt)
+        if not content:
+            logger.error("Failed to generate enemy content, using fallback")
+            return get_fallback_enemy(player_level)
+
+        # Parse enemy data
+        data = _try_parse_enemy_data(content)
+        if not data:
+            logger.error("Failed to parse enemy data, using fallback")
+            return get_fallback_enemy(player_level)
+
+        # Validate required fields
+        required_fields = [
+            "name",
+            "description",
+            "health",
+            "attack",
+            "defense",
+            "level",
+        ]
+        for field in required_fields:
+            if field not in data:
+                logger.error(
+                    f"Enemy data missing required field: {field}, using fallback"
+                )
+                return get_fallback_enemy(player_level)
+
+        # Ensure fields are the correct types
+        try:
+            # Convert any string numbers to integers
+            for field in ["health", "attack", "defense", "level"]:
+                if isinstance(data[field], str):
+                    data[field] = int(data[field])
+        except (ValueError, TypeError):
+            logger.error("Error converting numeric fields to integers, using fallback")
+            return get_fallback_enemy(player_level)
+
+        # Generate ASCII art for the enemy
+        enemy_art = generate_enemy_art(data["name"], data["description"])
+
+        # Calculate exp reward based on enemy level
+        exp_multiplier = 15
+        exp_reward = data["level"] * exp_multiplier
+
+        # Create and return enemy
+        return Enemy(
             name=data["name"],
-            description=data.get("description", ""),
-            health=int(data["health"]),
-            attack=int(data["attack"]),
-            defense=int(data["defense"]),
-            level=int(data["level"]),
-            exp_reward=int(data["exp_reward"]),
-            art=None,  # We'll set this later if art generation succeeds
+            description=data["description"],
+            health=data["health"],
+            attack=data["attack"],
+            defense=data["defense"],
+            level=data["level"],
+            exp_reward=exp_reward,
+            art=enemy_art,
         )
 
-        # Generate and attach art
-        try:
-            art = generate_enemy_art(enemy.name, enemy.description)
-            if art:
-                enemy.art = art
-        except Exception as art_error:
-            logger.error(f"Art generation failed: {art_error}")
-            # Continue without art
-
-        logger.info(f"Successfully generated enemy: {enemy.name}")
-        return enemy
-
     except Exception as e:
-        logger.error(f"Enemy generation failed: {str(e)}")
-        logger.error("Traceback: ", exc_info=True)
-        return None
+        logger.error(f"Error generating enemy: {str(e)}", exc_info=True)
+        # Return fallback enemy in case of any error
+        return get_fallback_enemy(player_level)

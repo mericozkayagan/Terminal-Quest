@@ -103,6 +103,18 @@ def init_database():
         UNIQUE (slot_number)
     );
 
+    -- Create game state table
+    CREATE TABLE IF NOT EXISTS game_state (
+        id SERIAL PRIMARY KEY,
+        character_id INTEGER NOT NULL REFERENCES characters(id) ON DELETE CASCADE,
+        encounters_until_boss INTEGER NOT NULL DEFAULT 10,
+        total_boss_interval INTEGER NOT NULL DEFAULT 10,
+        encounter_count INTEGER NOT NULL DEFAULT 0,
+        created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        updated_at TIMESTAMP NOT NULL DEFAULT NOW(),
+        UNIQUE (character_id)
+    );
+
     -- Initialize save slots
     INSERT INTO save_slots (slot_number)
     SELECT generate_series(1, 5)
